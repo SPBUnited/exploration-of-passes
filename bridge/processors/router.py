@@ -10,7 +10,6 @@ import typing
 import bridge.processors.auxiliary as aux
 import bridge.processors.const as const
 import bridge.processors.field as field
-import bridge.processors.quickhull as qh
 import bridge.processors.route as route
 import bridge.processors.waypoint as wp
 
@@ -54,54 +53,6 @@ class Router:
         """
         Рассчитать маршруты по актуальным путевым точкам
         """
-        for idx in range(const.TEAM_ROBOTS_MAX_COUNT):
-
-            self_pos = fld.allies[idx].get_pos()
-
-            if not self.routes[idx].is_used():
-                continue
-
-            if (
-                self.routes[idx].get_next_type() == wp.WType.S_BALL_KICK
-                or self.routes[idx].get_next_type() == wp.WType.S_BALL_GRAB
-            ):
-                # if not field.allies[idx].is_kick_aligned(self.routes[idx].get_dest_wp()):
-                align_wp = self.calc_kick_wp(idx)
-                self.routes[idx].insert_wp(align_wp)
-
-            if idx == const.GK:
-                pth_wp = self.calc_vector_field(idx, fld)
-                if pth_wp is not None:
-                    self.routes[idx].insert_wp(pth_wp)
-                continue
-
-            for goal in [fld.ally_goal, fld.enemy_goal]:
-                if aux.is_point_inside_poly(self_pos, goal.hull):
-                    closest_out = aux.find_nearest_point(self_pos, goal.hull, [goal.up, aux.GRAVEYARD_POS, goal.down])
-                    angle0 = self.routes[idx].get_dest_wp().angle
-                    self.routes[idx].set_dest_wp(
-                        wp.Waypoint(goal.center + (closest_out - goal.center) * 1.2, angle0, wp.WType.S_ENDPOINT)
-                    )
-                    continue
-                pint = aux.segment_poly_intersect(self_pos, self_pos + self.routes[idx].get_next_vec(), goal.hull)
-                if pint is not None:
-                    if aux.is_point_inside_poly(self.routes[idx].get_dest_wp().pos, goal.hull):
-                        angle0 = self.routes[idx].get_dest_wp().angle
-                        self.routes[idx].set_dest_wp(wp.Waypoint(pint, angle0, wp.WType.S_ENDPOINT))
-                        break
-                    convex_hull = qh.shortesthull(self_pos, self_pos + self.routes[idx].get_next_vec(), goal.hull)
-                    for j in range(len(convex_hull) - 2, 0, -1):
-                        self.routes[idx].insert_wp(wp.Waypoint(convex_hull[j], 0, wp.WType.R_PASSTHROUGH))
-
-            pth_wp = self.calc_vector_field(idx, fld)
-            if pth_wp is not None:
-                is_inside = False
-                for goal in [fld.ally_goal, fld.enemy_goal]:
-                    if aux.is_point_inside_poly(pth_wp.pos, goal.hull):
-                        is_inside = True
-                        break
-                if not is_inside:
-                    self.routes[idx].insert_wp(pth_wp)
 
     def calc_vector_field(self, idx: int, fld: field.Field) -> typing.Optional[wp.Waypoint]:
         """

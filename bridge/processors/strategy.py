@@ -13,6 +13,7 @@ from enum import Enum
 
 import bridge.processors.auxiliary as aux
 import bridge.processors.const as const
+import bridge.processors.drawing as drawing
 import bridge.processors.field as field  # pylint: disable = unused-import
 import bridge.processors.robot as robot
 import bridge.processors.signal as signal
@@ -138,6 +139,8 @@ class Strategy:
                 self.keep_distance(field, waypoints)
 
         # print(self.game_status, self.state)
+        drawing.update_window()
+        drawing.draw_bang_bang_traj(aux.Point(1000, 1000), aux.Point(100, 50), aux.Point(1000, -1000))
         return waypoints
 
     def run(self, field: field.Field, waypoints: list[wp.Waypoint]) -> None:
