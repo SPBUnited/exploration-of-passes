@@ -3,6 +3,7 @@ import math
 
 import numpy
 import pygame
+import time
 
 import bridge.processors.auxiliary as aux
 import bridge.processors.const as const
@@ -105,7 +106,7 @@ def proj_with_end_speed(pos1: aux.Point, v1: aux.Point, pos2: aux.Point, v2: aux
     #         v = vv
 
     # v = aux.Point(math.cos(time.time()), math.sin(time.time())) * v_max
-
+    print(last_dist)
     a1 = (v - v1).unity() * a_max
     t1 = (v - v1).mag() / a_max
     a2 = (v2 - v).unity() * a_max
@@ -121,7 +122,7 @@ def proj_with_end_speed(pos1: aux.Point, v1: aux.Point, pos2: aux.Point, v2: aux
         dot_pos = extra_point + v * tt
         draw_dot(dot_pos, 3, (0, 0, 255))
     for tt in numpy.arange(-t2, 0, dt):
-        dot_pos = pos2 - v2 * tt + a2 * tt**2 / 2
+        dot_pos = pos2 + v2 * tt + a2 * tt**2 / 2
         draw_dot(dot_pos)
 
 

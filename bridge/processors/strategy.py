@@ -140,7 +140,7 @@ class Strategy:
 
         # print(self.game_status, self.state)
         drawing.update_window()
-        drawing.draw_bang_bang_traj(aux.Point(1000, 1000), aux.Point(100, 50), aux.Point(1000, -1000))
+        drawing.draw_bang_bang_traj(aux.Point(1000, 1000), aux.Point(100, 50), aux.Point(1000, -1000), aux.Point(50, 0))
         return waypoints
 
     def run(self, field: field.Field, waypoints: list[wp.Waypoint]) -> None:
