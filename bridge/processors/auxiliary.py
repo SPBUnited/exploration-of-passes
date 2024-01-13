@@ -97,6 +97,12 @@ class Point:
     def __str__(self) -> str:
         return f"x = {self.x:.2f}, y = {self.y:.2f}"
 
+    def xy(self) -> tuple[float, float]:
+        """
+        Получить координаты точки в виде массива [x, y]
+        """
+        return self.x, self.y
+
     def mag(self) -> float:
         """
         Получить модуль вектора

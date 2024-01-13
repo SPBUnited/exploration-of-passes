@@ -14,6 +14,7 @@ from strategy_bridge.utils.debugger import debugger
 
 import bridge.processors.auxiliary as aux
 import bridge.processors.const as const
+import bridge.processors.drawing as drawing
 import bridge.processors.field as field
 import bridge.processors.router as router
 import bridge.processors.signal as signal
@@ -57,6 +58,8 @@ class SSLController(BaseProcessor):
         self.field = field.Field(self.ctrl_mapping, self.ally_color)
         self.router = router.Router(self.field)
         self.strategy = strategy.Strategy()
+
+        self.drawer = drawing.Image()
 
     def get_last_referee_command(self) -> RefereeCommand:
         """
@@ -183,6 +186,9 @@ class SSLController(BaseProcessor):
         #     print(self.field.y_team[i])
         # for i in range(const.TEAM_ROBOTS_MAX_COUNT):
         #     print(self.field.b_team[i])
+
+        self.drawer.draw_bang_bang_traj(aux.Point(1200, 500), aux.Point(40, -50), aux.Point(-350, 1200), aux.Point(40, 60))
+        self.drawer.update_window()
 
     square = signal.Signal(2, "SQUARE", lohi=(-20, 20))
     sine = signal.Signal(2, "SINE", ampoffset=(1000, 0))
