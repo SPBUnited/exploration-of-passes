@@ -5,6 +5,7 @@ import time
 
 import attr
 import numpy as np
+import random
 from strategy_bridge.bus import DataBus, DataReader, DataWriter
 from strategy_bridge.common import config
 from strategy_bridge.model.referee import RefereeCommand
@@ -187,7 +188,11 @@ class SSLController(BaseProcessor):
         # for i in range(const.TEAM_ROBOTS_MAX_COUNT):
         #     print(self.field.b_team[i])
 
-        self.drawer.draw_bang_bang_traj(aux.Point(1200, 500), aux.Point(40, -50), aux.Point(-350, 1200), aux.Point(40, 60))
+        # self.drawer.draw_bang_bang_traj(aux.Point(random.randint(-1000, 1000), random.randint(-1000, 1000)),
+        #                                 aux.Point(random.randint(-50, 50), random.randint(-50, 50)),
+        #                                 aux.Point(random.randint(-1000, 1000), random.randint(-1000, 1000)),
+        #                                 aux.Point(random.randint(-50, 50), random.randint(-50, 50)))
+        self.drawer.draw_bang_bang_traj(aux.Point(921, 39), aux.Point(21, 34), aux.Point(982, 228), aux.Point(37, 41))
         self.drawer.update_window()
 
     square = signal.Signal(2, "SQUARE", lohi=(-20, 20))
