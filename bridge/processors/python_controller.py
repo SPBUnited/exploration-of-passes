@@ -1,11 +1,11 @@
 """
 Модуль стратегии игры
 """
+import random
 import time
 
 import attr
 import numpy as np
-import random
 from strategy_bridge.bus import DataBus, DataReader, DataWriter
 from strategy_bridge.common import config
 from strategy_bridge.model.referee import RefereeCommand
@@ -188,11 +188,13 @@ class SSLController(BaseProcessor):
         # for i in range(const.TEAM_ROBOTS_MAX_COUNT):
         #     print(self.field.b_team[i])
 
-        # self.drawer.draw_bang_bang_traj(aux.Point(random.randint(-1000, 1000), random.randint(-1000, 1000)),
-        #                                 aux.Point(random.randint(-50, 50), random.randint(-50, 50)),
-        #                                 aux.Point(random.randint(-1000, 1000), random.randint(-1000, 1000)),
-        #                                 aux.Point(random.randint(-50, 50), random.randint(-50, 50)))
-        self.drawer.draw_bang_bang_traj(aux.Point(921, 39), aux.Point(21, 34), aux.Point(982, 228), aux.Point(37, 41))
+        self.drawer.draw_bang_bang_traj(
+            aux.Point(random.randint(-1000, 1000), random.randint(-1000, 1000)),
+            aux.Point(random.randint(-50, 50), random.randint(-50, 50)),
+            aux.Point(random.randint(-1000, 1000), random.randint(-1000, 1000)),
+            aux.Point(random.randint(-50, 50), random.randint(-50, 50)),
+        )
+        # self.drawer.draw_bang_bang_traj(aux.Point(0, 0), aux.Point(490, 290), aux.Point(220, 520), aux.Point(-350, -200))
         self.drawer.update_window()
 
     square = signal.Signal(2, "SQUARE", lohi=(-20, 20))
