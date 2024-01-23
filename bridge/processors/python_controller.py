@@ -1,7 +1,6 @@
 """
 Модуль стратегии игры
 """
-import random
 import time
 
 import attr
@@ -130,7 +129,7 @@ class SSLController(BaseProcessor):
                 8: strategy.GameStates.PENALTY,
                 9: strategy.GameStates.FREE_KICK,
                 10: strategy.GameStates.HALT,
-                11: strategy.GameStates.BALL_PLACMENT,
+                11: strategy.GameStates.BALL_PLACEMENT,
             }
 
             cur_cmd = self.get_last_referee_command()
@@ -142,7 +141,7 @@ class SSLController(BaseProcessor):
                 if cur_cmd.state == 4:
                     print("End game")
                 elif cur_cmd.state == 10:
-                    print("Uknown command 10")
+                    print("Unknown command 10")
 
             # if self.count_halt_cmd > 10:
             #     self.strategy.change_game_state(strategy.GameStates.HALT, cur_cmd.commandForTeam)
@@ -155,7 +154,7 @@ class SSLController(BaseProcessor):
                     self.field.b_team[robot_det.robot_id].used(0)
                 else:
                     self.field.b_team[robot_det.robot_id].used(1)
-                self.field.upbate_blu_robot(
+                self.field.update_blu_robot(
                     robot_det.robot_id, aux.Point(robot_det.x, robot_det.y), robot_det.orientation, time.time()
                 )
 
@@ -188,13 +187,13 @@ class SSLController(BaseProcessor):
         # for i in range(const.TEAM_ROBOTS_MAX_COUNT):
         #     print(self.field.b_team[i])
 
-        self.drawer.draw_bang_bang_traj(
-            aux.Point(random.randint(-1000, 1000), random.randint(-1000, 1000)),
-            aux.Point(random.randint(-50, 50), random.randint(-50, 50)),
-            aux.Point(random.randint(-1000, 1000), random.randint(-1000, 1000)),
-            aux.Point(random.randint(-50, 50), random.randint(-50, 50)),
-        )
-        # self.drawer.draw_bang_bang_traj(aux.Point(0, 0), aux.Point(490, 290), aux.Point(220, 520), aux.Point(-350, -200))
+        # self.drawer.draw_bang_bang_trajectory(
+        #     aux.Point(random.randint(-1000, 1000), random.randint(-1000, 1000)),
+        #     aux.Point(random.randint(-50, 50), random.randint(-50, 50)),
+        #     aux.Point(random.randint(-1000, 1000), random.randint(-1000, 1000)),
+        #     aux.Point(random.randint(-50, 50), random.randint(-50, 50)),
+        # )
+        self.drawer.draw_bang_bang_trajectory(aux.Point(0, 0), aux.Point(30, -37), aux.Point(0, -180), aux.Point(30, -37))
         self.drawer.update_window()
 
     square = signal.Signal(2, "SQUARE", lohi=(-20, 20))

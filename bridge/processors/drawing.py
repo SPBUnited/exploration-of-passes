@@ -87,9 +87,14 @@ class Image:
         pygame.display.flip()
         self.draw_field()
 
-    def draw_bang_bang_traj(self, pos1: aux.Point, v1: aux.Point, pos2: aux.Point, v2: Optional[aux.Point] = None) -> None:
+    def draw_bang_bang_trajectory(
+        self, pos1: aux.Point, v1: aux.Point, pos2: aux.Point, v2: Optional[aux.Point] = None
+    ) -> None:
+        """
+        draw full trajectory with speed v2 in end point if max speed isn't achieved
+        """
         v = trapeze(pos2 - pos1, v1, v2)
-        # _, v = triang_dist(pos2 - pos1, 300, v1, v2)
+        # _, v = triangle_dist(pos2 - pos1, 300, v1, v2)
         dt = 0.1
         a1 = (v - v1).unity() * a_max
         t1 = (v - v1).mag() / a_max
@@ -138,18 +143,14 @@ class Image:
                 print("Triangle with end speed; path time: ", t1 + t2)
 
 
-def trapeze(delta_pos: aux.Point, v1: aux.Point, v2: Optional[aux.Point]) -> aux.Point:
-    """
-    draw full trajectory with speed v2 in end point if max speed isn't achieved
-    """
+def trapeze(delta_pos: aux.Point, v1: aux.Point, v2: Optional[aux.Point], n: int = 10) -> aux.Point:
     angle_near: float
-    last_dist = None
-    n: int = 10
+    last_dist = -1.0
     for i in range(n):
         angle = math.pi * 2 * i / n
         v = aux.Point(math.cos(angle), math.sin(angle)) * v_max
         dist = dist_for_v(delta_pos, v, v1, v2)
-        if last_dist is None or last_dist > dist:
+        if last_dist == -1.0 or last_dist > dist:
             last_dist = dist
             angle_near = angle
 
@@ -172,28 +173,24 @@ def trapeze(delta_pos: aux.Point, v1: aux.Point, v2: Optional[aux.Point]) -> aux
             last_dist = dist2
 
     if last_dist > 1:
-        print(f"dist for trapez: {last_dist}")
-        return triang(delta_pos, v1, v2)
+        print(f"dist for trapeze: {last_dist}")
+        return triangle(delta_pos, v1, v2, n)
 
     # v = aux.Point(math.cos(time.time()), math.sin(time.time())) * v_max
     print(last_dist)
     return v
 
 
-def triang(delta_pos: aux.Point, v1: aux.Point, v2: Optional[aux.Point]) -> aux.Point:
+def triangle(delta_pos: aux.Point, v1: aux.Point, v2: Optional[aux.Point], n: int) -> aux.Point:
     """
     draw full trajectory with speed v2 in end point if max speed is reached
     """
-    if v2 is None:  # TODO
-        v2 = aux.Point(0, 0)
-
-    dist_min = None
-    n: int = 10
+    dist_min = -1.0
     v_near: float
     for i in range(1, n):
         v_mag = v_max * i / n
-        dist, _ = triang_dist(delta_pos, v_mag, v1, v2)
-        if dist_min is None or dist < dist_min:
+        dist, _ = triangle_dist(delta_pos, v_mag, v1, v2, n)
+        if dist_min - 1.0 or dist < dist_min:
             dist_min = dist
             v_near = v_mag
 
@@ -203,8 +200,8 @@ def triang(delta_pos: aux.Point, v1: aux.Point, v2: Optional[aux.Point]) -> aux.
     while mag_max - mag_min > 10e-6:
         v_mag1 = (mag_max - mag_min) * 1 / 3 + mag_min
         v_mag2 = (mag_max - mag_min) * 2 / 3 + mag_min
-        dist1, _ = triang_dist(delta_pos, v_mag1, v1, v2)
-        dist2, v = triang_dist(delta_pos, v_mag2, v1, v2)
+        dist1, _ = triangle_dist(delta_pos, v_mag1, v1, v2, n)
+        dist2, v = triangle_dist(delta_pos, v_mag2, v1, v2, n)
         if dist1 < dist2:
             mag_max = v_mag2
             dist_min = dist1
@@ -216,7 +213,7 @@ def triang(delta_pos: aux.Point, v1: aux.Point, v2: Optional[aux.Point]) -> aux.
 
     # mass: list[float] = []
     # for i in range(1, 1000):
-    #     a = triang_dist(delta_pos, i / 1000, v1, v2)[0]
+    #     a = triangle_dist(delta_pos, i / 1000, v1, v2)[0]
     #     mass.append(a)
     # print("=======================================")
     # plt.plot(mass)
@@ -224,7 +221,7 @@ def triang(delta_pos: aux.Point, v1: aux.Point, v2: Optional[aux.Point]) -> aux.
 
     if dist_min > 10 or v.mag() > v_max:
         print("crash: ", delta_pos, v1, v2)
-        _ = 1 / 0
+        _ = 1 / 0  # crasher))))))
 
     # t1 = (v - v1).mag() / a_max
     # t2 = (v2 - v).mag() / a_max
@@ -234,15 +231,17 @@ def triang(delta_pos: aux.Point, v1: aux.Point, v2: Optional[aux.Point]) -> aux.
     return v
 
 
-def triang_dist(delta_pos: aux.Point, v_mag: float, v1: aux.Point, v2: aux.Point) -> tuple[float, aux.Point]:
+def triangle_dist(
+    delta_pos: aux.Point, v_mag: float, v1: aux.Point, v2: Optional[aux.Point], n: int
+) -> tuple[float, aux.Point]:
     angle_near: float
-    last_dist = None
-    n: int = 15  # >10
+    last_dist = -1.0
+    n += 5
     for i in range(n):
         angle = math.pi * 2 * i / n
         v = aux.Point(math.cos(angle), math.sin(angle)) * v_mag
         dist = dist_for_v(delta_pos, v, v1, v2)
-        if last_dist is None or last_dist > dist:
+        if last_dist == -1 or last_dist > dist:
             last_dist = dist
             angle_near = angle
 
@@ -277,20 +276,20 @@ def triang_dist(delta_pos: aux.Point, v_mag: float, v1: aux.Point, v2: aux.Point
     return last_dist, v
 
 
-def dist_for_v(
-    delta_pos: aux.Point, v: aux.Point, v1: aux.Point, v2: Optional[aux.Point]
-) -> float:  # TODO: add case for trapeze
+def dist_for_v(delta_pos: aux.Point, v: aux.Point, v1: aux.Point, v2: Optional[aux.Point]) -> float:
     if v_max - v.mag() < 10e-3:
-        if v2 is None:
+        if v2 is None:  # trapeze without end speed
             t1 = (v - v1).mag() / a_max
             t = (delta_pos - (v1 + v) * t1 / 2).mag() / v_max
             return aux.dist(delta_pos, (v1 + v) * t1 / 2 + v * t)
-        else:
-            t1 = (v - v1).mag() / a_max
-            t2 = (v2 - v).mag() / a_max
-            t = (delta_pos - (v1 + v) * t1 / 2 - (v2 + v) * t2 / 2).mag() / v_max
-            return aux.dist(delta_pos, (v1 + v) * t1 / 2 + v * t + (v2 + v) * t2 / 2)
+        t1 = (v - v1).mag() / a_max  # trapeze with end speed
+        t2 = (v2 - v).mag() / a_max
+        t = (delta_pos - (v1 + v) * t1 / 2 - (v2 + v) * t2 / 2).mag() / v_max
+        return aux.dist(delta_pos, (v1 + v) * t1 / 2 + v * t + (v2 + v) * t2 / 2)
     else:
-        t1 = (v - v1).mag() / a_max
+        if v2 is None:  # triangle without end speed
+            t1 = (v - v1).mag() / a_max
+            return aux.dist((v1 + v) * t1 / 2, delta_pos)
+        t1 = (v - v1).mag() / a_max  # triangle with end speed
         t2 = (v2 - v).mag() / a_max
         return aux.dist((v1 + v) * t1 / 2 + (v2 + v) * t2 / 2, delta_pos)

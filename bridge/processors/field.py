@@ -107,7 +107,7 @@ class Field:
             aux.wind_down_angle((self.ball.get_pos() - robo.get_pos()).arg() - robo.get_angle())
         ) < const.BALL_GRABBED_ANGLE
 
-    def upbate_blu_robot(self, idx: int, pos: aux.Point, angle: float, t: float) -> None:
+    def update_blu_robot(self, idx: int, pos: aux.Point, angle: float, t: float) -> None:
         """
         Обновить положение робота синей команды
         !!! Вызывать один раз за итерацию с постоянной частотой !!!
@@ -164,5 +164,5 @@ class Field:
         Определить, движется ли мяч в сторону ворот
         """
         return (
-            self.ball.get_vel().mag() > const.GK_INTERCEPT_SPEED
-        )  # and self.ball._vel.x / self.ally_goal.center.x > 0 нужно протестить
+            self.ball.get_vel().mag() > const.GK_INTERCEPT_SPEED and self.ball.get_vel().x / self.ally_goal.center.x > 0
+        )  # TODO проверить работоспособность

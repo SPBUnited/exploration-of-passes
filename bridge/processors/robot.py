@@ -103,7 +103,7 @@ class Robot(entity.Entity):
             [a_gains_full[3], a_gains_soft[3]],
         )
 
-        self.is_kick_commited = False
+        self.is_kick_committed = False
 
     def used(self, a: int) -> None:
         """
@@ -195,7 +195,7 @@ class Robot(entity.Entity):
         # print(aux.i, target.angle, aux.rotate(aux.i, target.angle), target.pos,
         #                                       self._pos, target.pos - self._pos)
 
-        commit_scale = 1.2 if self.is_kick_commited else 1
+        commit_scale = 1.2 if self.is_kick_committed else 1
         is_dist = (self.get_pos() - target.pos).mag() < const.KICK_ALIGN_DIST * const.KICK_ALIGN_DIST_MULT * commit_scale
         is_angle = abs(aux.wind_down_angle(self._angle - target.angle)) < const.KICK_ALIGN_ANGLE * commit_scale
         is_offset = (
@@ -210,9 +210,9 @@ class Robot(entity.Entity):
         is_aligned = is_dist and is_angle and is_offset
 
         if is_aligned:
-            self.is_kick_commited = True
+            self.is_kick_committed = True
         else:
-            self.is_kick_commited = False
+            self.is_kick_committed = False
         print(is_dist, is_angle, is_offset)
         return is_aligned
 
@@ -313,9 +313,9 @@ def bot_position(pos: aux.Point, vecx: float, vecy: float) -> aux.Point:
     """
     TODO написать доку
     """
-    modul = (vecx**2 + vecy**2) ** (0.5)
-    vecx = (vecx / modul) * const.ROBOT_R * 1000 * 2
-    vecy = (vecy / modul) * const.ROBOT_R * 1000 * 2
+    module = (vecx**2 + vecy**2) ** (0.5)
+    vecx = (vecx / module) * const.ROBOT_R * 1000 * 2
+    vecy = (vecy / module) * const.ROBOT_R * 1000 * 2
     return aux.Point(pos.x - vecx, pos.y - vecy)
 
 

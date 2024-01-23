@@ -121,7 +121,7 @@ class Router:
 
     def calc_kick_wp(self, idx: int) -> wp.Waypoint:
         """
-        Рассчитать точку для выравниявания по мячу
+        Рассчитать точку для выравнивания по мячу
         """
         target_point = self.routes[idx].get_dest_wp()
         target_pos = target_point.pos

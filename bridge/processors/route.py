@@ -116,12 +116,12 @@ class Route:
         return dist
 
     def __str__(self) -> str:
-        strin = "ROUTE: "
+        string = "ROUTE: "
         for wpt in self.__get_route():
-            strin += " ->\n" + str(wpt)
+            string += " ->\n" + str(wpt)
         # for wp in [*self.robot, *self.__routewp, *self.__destination]:
-        #     strin += " -> " + str(wp)
-        return strin
+        #     string += " -> " + str(wp)
+        return string
 
     def go_route(self, rbt: robot.Robot, fld: field.Field) -> None:
         """
