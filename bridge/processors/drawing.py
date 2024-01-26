@@ -94,6 +94,9 @@ class Image:
         draw full trajectory with speed v2 in end point if max speed isn't achieved
         """
         v = trapeze(pos2 - pos1, v1, v2)
+        if v is None:
+            print("error for:", pos2 - pos1, v1, v2)
+            return
         # _, v = triangle_dist(pos2 - pos1, 300, v1, v2)
         dt = 0.1
         a1 = (v - v1).unity() * a_max
@@ -143,7 +146,10 @@ class Image:
                 print("Triangle with end speed; path time: ", t1 + t2)
 
 
-def trapeze(delta_pos: aux.Point, v1: aux.Point, v2: Optional[aux.Point], n: int = 10) -> aux.Point:
+def trapeze(delta_pos: aux.Point, v1: aux.Point, v2: Optional[aux.Point], n: int = 10) -> Optional[aux.Point]:
+    """
+    calculate full trajectory for "trapeze" case (if end point if max speed is reached)
+    """
     angle_near: float
     last_dist = -1.0
     for i in range(n):
@@ -181,9 +187,9 @@ def trapeze(delta_pos: aux.Point, v1: aux.Point, v2: Optional[aux.Point], n: int
     return v
 
 
-def triangle(delta_pos: aux.Point, v1: aux.Point, v2: Optional[aux.Point], n: int) -> aux.Point:
+def triangle(delta_pos: aux.Point, v1: aux.Point, v2: Optional[aux.Point], n: int) -> Optional[aux.Point]:
     """
-    draw full trajectory with speed v2 in end point if max speed is reached
+    calculate full trajectory for "triangle" case (if end point if max speed isn't reached)
     """
     dist_min = -1.0
     v_near: float
@@ -220,8 +226,10 @@ def triangle(delta_pos: aux.Point, v1: aux.Point, v2: Optional[aux.Point], n: in
     # plt.show()
 
     if dist_min > 10 or v.mag() > v_max:
-        print("crash: ", delta_pos, v1, v2)
-        _ = 1 / 0  # crasher))))))
+        if n > 10:
+            return None
+        return trapeze(delta_pos, v1, v2, n+10)
+
 
     # t1 = (v - v1).mag() / a_max
     # t2 = (v2 - v).mag() / a_max
@@ -234,6 +242,9 @@ def triangle(delta_pos: aux.Point, v1: aux.Point, v2: Optional[aux.Point], n: in
 def triangle_dist(
     delta_pos: aux.Point, v_mag: float, v1: aux.Point, v2: Optional[aux.Point], n: int
 ) -> tuple[float, aux.Point]:
+    '''
+    calculate angle for v in "triangle" case
+    '''
     angle_near: float
     last_dist = -1.0
     n += 5
@@ -277,6 +288,9 @@ def triangle_dist(
 
 
 def dist_for_v(delta_pos: aux.Point, v: aux.Point, v1: aux.Point, v2: Optional[aux.Point]) -> float:
+    '''
+    calculate distance between trajectories from start and end for every case
+    '''
     if v_max - v.mag() < 10e-3:
         if v2 is None:  # trapeze without end speed
             t1 = (v - v1).mag() / a_max
