@@ -6,8 +6,8 @@ import math
 import time
 from typing import Optional
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 import pygame
 
 import auxiliary as aux
@@ -78,9 +78,7 @@ class Image:
         """
         draw single point
         """
-        pygame.draw.circle(
-            self.screen, color, (pos.x * self.scale + self.middle_x, -pos.y * self.scale + self.middle_y), 5
-        )
+        pygame.draw.circle(self.screen, color, (pos.x * self.scale + self.middle_x, -pos.y * self.scale + self.middle_y), size)
 
     def update_window(self) -> None:
 
@@ -153,10 +151,7 @@ class Image:
                 self.draw_dot(pos2, 3, (127, 0, 255))
                 print("Triangle with end speed; path time: ", t1 + t2)
 
-
-    def draw_graph(
-        self, pos1: aux.Point, v1: aux.Point, pos2: aux.Point, v2: Optional[aux.Point] = None
-    ) -> None:
+    def draw_graph(self, pos1: aux.Point, v1: aux.Point, pos2: aux.Point, v2: Optional[aux.Point] = None) -> None:
         """
         draw full trajectory with speed v2 in end point if max speed isn't achieved
         """
@@ -299,24 +294,23 @@ def triangle(delta_pos: aux.Point, v1: aux.Point, v2: Optional[aux.Point], n: in
     if dist_min > 10 or v.mag() > v_max:
         if n > 40:
             return None
-        return trapeze(delta_pos, v1, v2, n+10)
-
+        return trapeze(delta_pos, v1, v2, n + 10)
 
     # t1 = (v - v1).mag() / a_max
     # t2 = (v2 - v).mag() / a_max
 
     # dist = aux.dist((v1 + v) * t1 / 2 + (v2 + v) * t2 / 2, delta_pos)
-    v = aux.Point(math.cos(time.time()), math.sin(time.time())) * v.mag() # spinning trajectory :)
-    
+    v = aux.Point(math.cos(time.time()), math.sin(time.time())) * v.mag()  # spinning trajectory :)
+
     return v
 
 
 def triangle_dist(
     delta_pos: aux.Point, v_mag: float, v1: aux.Point, v2: Optional[aux.Point], n: int
 ) -> tuple[float, aux.Point]:
-    '''
+    """
     calculate angle for v in "triangle" case
-    '''
+    """
     angle_near: float
     last_dist = -1.0
     n += 5
@@ -360,9 +354,9 @@ def triangle_dist(
 
 
 def dist_for_v(delta_pos: aux.Point, v: aux.Point, v1: aux.Point, v2: Optional[aux.Point]) -> float:
-    '''
+    """
     calculate distance between trajectories from start and end for every case
-    '''
+    """
     if v_max - v.mag() < 10e-3:
         if v2 is None:  # trapeze without end speed
             t1 = (v - v1).mag() / a_max
@@ -382,9 +376,9 @@ def dist_for_v(delta_pos: aux.Point, v: aux.Point, v1: aux.Point, v2: Optional[a
 
 
 def graf_for_params(v: list[aux.Point], a: list[aux.Point]) -> None:
-    '''
+    """
     nothing interesting, pls you don't need to watch here
-    '''
+    """
     v_x, v_y = [], []
     for speed in v:
         v_x.append(speed.x)
@@ -399,13 +393,13 @@ def graf_for_params(v: list[aux.Point], a: list[aux.Point]) -> None:
     for i in range(len(v)):
         t.append(i)
 
-    _, ax = plt.subplots(2,1)
+    _, ax = plt.subplots(2, 1)
 
     ax[0].plot(t, v_x, t, v_y)
-    ax[0].legend(['Speed_x','Speed_y'])
+    ax[0].legend(["Speed_x", "Speed_y"])
 
     ax[1].plot(t, a_x, t, a_y)
-    ax[1].legend(['Acceleration_x', 'Acceleration_y'])
+    ax[1].legend(["Acceleration_x", "Acceleration_y"])
 
     for axes in ax:
         axes.grid(True)
