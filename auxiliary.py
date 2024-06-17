@@ -160,7 +160,9 @@ def line_poly_intersect(p1: Point, p2: Point, points: list[Point]) -> bool:
     return False
 
 
-def segment_poly_intersect(p1: Point, p2: Point, points: list[Point]) -> typing.Optional[Point]:
+def segment_poly_intersect(
+    p1: Point, p2: Point, points: list[Point]
+) -> typing.Optional[Point]:
     """
     Определить, пересекает ли отрезок p1-p2 полигон points
     Если да - возвращает одну из двух точек пересечения
@@ -192,7 +194,11 @@ def dist(a: Point, b: Point) -> float:
 
 
 def get_line_intersection(
-    line1_start: Point, line1_end: Point, line2_start: Point, line2_end: Point, is_inf: str = "SS"
+    line1_start: Point,
+    line1_end: Point,
+    line2_start: Point,
+    line2_end: Point,
+    is_inf: str = "SS",
 ) -> typing.Optional[Point]:
     """
     Получить точку пересечения отрезков или прямых
@@ -232,9 +238,21 @@ def get_line_intersection(
 
     first_valid = False
     second_valid = False
-    if is_inf[0] == "S" and 0 <= t1 <= 1 or is_inf[0] == "R" and t1 >= 0 or is_inf[0] == "L":
+    if (
+        is_inf[0] == "S"
+        and 0 <= t1 <= 1
+        or is_inf[0] == "R"
+        and t1 >= 0
+        or is_inf[0] == "L"
+    ):
         first_valid = True
-    if is_inf[1] == "S" and 0 <= t2 <= 1 or is_inf[1] == "R" and t2 >= 0 or is_inf[1] == "L":
+    if (
+        is_inf[1] == "S"
+        and 0 <= t2 <= 1
+        or is_inf[1] == "R"
+        and t2 >= 0
+        or is_inf[1] == "L"
+    ):
         second_valid = True
 
     if first_valid and second_valid:
@@ -261,10 +279,15 @@ def rotate(p: Point, angle: float) -> Point:
     """
     Повернуть вектор p на угол angle
     """
-    return Point(p.x * math.cos(angle) - p.y * math.sin(angle), p.y * math.cos(angle) + p.x * math.sin(angle))
+    return Point(
+        p.x * math.cos(angle) - p.y * math.sin(angle),
+        p.y * math.cos(angle) + p.x * math.sin(angle),
+    )
 
 
-def find_nearest_point(p: Point, points: list[Point], exclude: typing.Optional[list[Point]] = None) -> Point:  #
+def find_nearest_point(
+    p: Point, points: list[Point], exclude: typing.Optional[list[Point]] = None
+) -> Point:  #
     """
     Найти ближайшую точку к p из облака points, игнорируя точки exclude
     """
@@ -304,14 +327,19 @@ def closest_point_on_line(point1: Point, point2: Point, point: Point) -> Point:
     line_direction = (line_vector[0] / line_length, line_vector[1] / line_length)
 
     point_vector = (point.x - point1.x, point.y - point1.y)
-    dot_product = point_vector[0] * line_direction[0] + point_vector[1] * line_direction[1]
+    dot_product = (
+        point_vector[0] * line_direction[0] + point_vector[1] * line_direction[1]
+    )
 
     if dot_product <= 0:
         return point1
     if dot_product >= line_length:
         return point2
 
-    closest_point = Point(point1.x + line_direction[0] * dot_product, point1.y + line_direction[1] * dot_product)
+    closest_point = Point(
+        point1.x + line_direction[0] * dot_product,
+        point1.y + line_direction[1] * dot_product,
+    )
 
     return closest_point
 
@@ -389,3 +417,38 @@ def in_place(point: Point, end: Point, epsilon: float) -> bool:
     Проверить, находится ли точка st в радиусе epsilon около end
     """
     return (point - end).mag() < epsilon
+
+
+def circles_inter(p0: Point, p1: Point, r0: float, r1: float) -> tuple[Point, Point]:
+    """
+    Get intersects of 2 circles:
+        p0, r0 - координаты центра и радиус первой окружности
+        p1, r1 - координаты центра и радиус второй окружности
+    """
+    d = dist(p0, p1)
+    a = (r0**2 - r1**2 + d**2) / (2 * d)
+    h = math.sqrt(r0**2 - a**2)
+    x2 = p0.x + a * (p1.x - p0.x) / d
+    y2 = p0.y + a * (p1.y - p0.y) / d
+    x3 = x2 + h * (p1.y - p0.y) / d
+    y3 = y2 - h * (p1.x - p0.x) / d
+    x4 = x2 - h * (p1.y - p0.y) / d
+    y4 = y2 + h * (p1.x - p0.x) / d
+    return Point(x3, y3), Point(x4, y4)
+
+
+def get_tangent_points(
+    point0: Point, point1: Point, r: float
+) -> typing.Optional[list[Point]]:
+    """
+    Get tangents (point0 - center of circle)
+    """
+    d = dist(point0, point1)
+    if d < r:
+        return None
+    elif d == r:
+        return [point1]
+    else:
+        midx, midy = (point0.x + point1.x) / 2, (point0.y + point1.y) / 2
+        p2, p3 = circles_inter(point0, Point(midx, midy), r, d / 2)
+        return [p2, p3]
