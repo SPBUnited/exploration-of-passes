@@ -13,9 +13,6 @@ import pygame
 import auxiliary as aux
 import const
 
-v_max = 400
-a_max = 50
-
 
 class Image:
     """
@@ -114,7 +111,7 @@ class Image:
         pygame.draw.line(self.screen, robot_color, r.xy(), end_point, 2)
 
     def draw_dot(
-            self, pos: aux.Point, size: float = 3, color: tuple[int, int, int] = (255, 0, 0)
+        self, pos: aux.Point, size: float = 3, color: tuple[int, int, int] = (255, 0, 0)
     ) -> None:
         """
         draw single point
@@ -127,7 +124,7 @@ class Image:
         )
 
     def draw_pixel(
-            self, pos: tuple[int, int], color: tuple[int, int, int] = (255, 0, 0)
+        self, pos: tuple[int, int], color: tuple[int, int, int] = (255, 0, 0)
     ) -> None:
         """
         draw single point
@@ -139,10 +136,18 @@ class Image:
             1,
         )
 
-    def estimate_pass_point(self, enemies: list[aux.Point], frm: Optional[aux.Point], to: Optional[aux.Point]) -> float:
+    def estimate_pass_point(
+        self,
+        enemies: list[aux.Point],
+        frm: Optional[aux.Point],
+        to: Optional[aux.Point],
+    ) -> float:
         """
         Оценивает пас из точки "frm" в точку "to, возвращая положительное значение до 0.8
         """
+        if len(enemies) == 0:
+            return 1
+
         if frm is None or to is None:
             return 0
         positions: list[tuple[int, aux.Point]] = []
@@ -150,14 +155,17 @@ class Image:
         poses = enemies
         for idx, rbt in enumerate(poses):
             positions.append([idx, rbt])
+        if len(positions) == 0:
+            return 1
         positions = sorted(positions, key=lambda x: x[1].y)
 
         tangents: list[tuple[int, list[aux.Point]]] = []
         for p in positions:
-            tgs = aux.get_tangent_points(p[1], frm, const.ROBOT_R)
-            if tgs is None or len(tgs) < 2:
-                continue
-            tangents.append([p[0], tgs])
+            if aux.dist(frm, p[1]) < aux.dist(frm, to):
+                tgs = aux.get_tangent_points(p[1], frm, const.ROBOT_R)
+                if tgs is None or len(tgs) < 2:
+                    continue
+                tangents.append([p[0], tgs])
 
         min_ = 10e3
 
@@ -182,12 +190,21 @@ class Image:
         # if minId == -1:
         #     return 0
 
+        for pos in positions:
+            dist = aux.dist(frm, pos[1])
+            not_ang = aux.dist(pos[1], to) - const.ROBOT_R
+            if not_ang < dist:
+                psevdo_ang = abs(math.asin(not_ang / dist))
+
+                if psevdo_ang < min_:
+                    min_ = psevdo_ang
+
         if min_ == 10e3 or len(shadows_bots) != 0:
             return 0
         dist = (frm - to).mag() / 1000
         # max_ang = abs(aux.wind_down_angle(2 * math.atan2(const.ROBOT_SPEED, -0.25 * dist + 4.5)))
         # max_ang = 10
-        return min(abs(min_ / (math.pi / 6)), 1)
+        return min(abs(min_ / (math.pi / 10)), 1)
 
     def draw_heat_map(self, enemies: list[aux.Point] = []) -> None:
         for cord_x in range(self.width // 2):
@@ -214,20 +231,21 @@ class Image:
                     elif enemy_angle_up > angle_down and enemy_angle_down < angle_down:
                         angle -= enemy_angle_up - angle_down
                     elif (
-                            enemy_angle_up < angle_up
-                            and enemy_angle_up > angle_down
-                            and enemy_angle_down < angle_up
-                            and enemy_angle_down > angle_down
+                        enemy_angle_up < angle_up
+                        and enemy_angle_up > angle_down
+                        and enemy_angle_down < angle_up
+                        and enemy_angle_down > angle_down
                     ):
                         angle -= enemy_angle_up - enemy_angle_down
-                lerp1 = self.estimate_pass_point(enemies, aux.Point(0, 0), point)
+                lerp1 = 1 - self.estimate_pass_point(enemies, aux.Point(0, 0), point)
                 lerp2 = aux.minmax(angle / math.pi * 4, 0, 1)
-                lerp = 1 - (lerp1 + lerp2) // 1
+                lerp = aux.minmax(lerp2 - lerp1, 0, 1)
                 red = round(min(1, 2 - lerp * 2) * 255)
                 green = round(min(1, lerp * 2) * 255)
                 color = (red, green, 0)
                 self.draw_pixel((cord_x, cord_y), color)
             print(f"{cord_x / self.width * 200:.1f} %")
+            pygame.event.get()
 
         for enemy in enemies:
             self.draw_robot(enemy)
