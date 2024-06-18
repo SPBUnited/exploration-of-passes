@@ -114,7 +114,7 @@ class Image:
         pygame.draw.line(self.screen, robot_color, r.xy(), end_point, 2)
 
     def draw_dot(
-        self, pos: aux.Point, size: float = 3, color: tuple[int, int, int] = (255, 0, 0)
+            self, pos: aux.Point, size: float = 3, color: tuple[int, int, int] = (255, 0, 0)
     ) -> None:
         """
         draw single point
@@ -127,7 +127,7 @@ class Image:
         )
 
     def draw_pixel(
-        self, pos: tuple[int, int], color: tuple[int, int, int] = (255, 0, 0)
+            self, pos: tuple[int, int], color: tuple[int, int, int] = (255, 0, 0)
     ) -> None:
         """
         draw single point
@@ -138,6 +138,56 @@ class Image:
             pos,
             1,
         )
+
+    def estimate_pass_point(self, enemies: list[aux.Point], frm: Optional[aux.Point], to: Optional[aux.Point]) -> float:
+        """
+        Оценивает пас из точки "frm" в точку "to, возвращая положительное значение до 0.8
+        """
+        if frm is None or to is None:
+            return 0
+        positions: list[tuple[int, aux.Point]] = []
+
+        poses = enemies
+        for idx, rbt in enumerate(poses):
+            positions.append([idx, rbt])
+        positions = sorted(positions, key=lambda x: x[1].y)
+
+        tangents: list[tuple[int, list[aux.Point]]] = []
+        for p in positions:
+            tgs = aux.get_tangent_points(p[1], frm, const.ROBOT_R)
+            if tgs is None or len(tgs) < 2:
+                continue
+            tangents.append([p[0], tgs])
+
+        min_ = 10e3
+
+        shadows_bots = []
+        for tangent in tangents:
+            ang1 = aux.get_angle_between_points(to, frm, tangent[1][0])
+            ang2 = aux.get_angle_between_points(to, frm, tangent[1][1])
+
+            if ang1 * ang2 < 0:
+                shadows_bots.append(tangent[0])
+            ang1 = abs(ang1)
+            ang2 = abs(ang2)
+            # if ang1 > 180:
+            #     ang1 = 360 - ang1
+            # if ang2 > 180:
+            #     ang2 = 360 - ang2
+
+            if ang1 < min_:
+                min_ = ang1
+            if ang2 < min_:
+                min_ = ang2
+        # if minId == -1:
+        #     return 0
+
+        if min_ == 10e3 or len(shadows_bots) != 0:
+            return 0
+        dist = (frm - to).mag() / 1000
+        # max_ang = abs(aux.wind_down_angle(2 * math.atan2(const.ROBOT_SPEED, -0.25 * dist + 4.5)))
+        # max_ang = 10
+        return min(abs(min_ / (math.pi / 6)), 1)
 
     def draw_heat_map(self, enemies: list[aux.Point] = []) -> None:
         for cord_x in range(self.width // 2):
@@ -164,14 +214,15 @@ class Image:
                     elif enemy_angle_up > angle_down and enemy_angle_down < angle_down:
                         angle -= enemy_angle_up - angle_down
                     elif (
-                        enemy_angle_up < angle_up
-                        and enemy_angle_up > angle_down
-                        and enemy_angle_down < angle_up
-                        and enemy_angle_down > angle_down
+                            enemy_angle_up < angle_up
+                            and enemy_angle_up > angle_down
+                            and enemy_angle_down < angle_up
+                            and enemy_angle_down > angle_down
                     ):
                         angle -= enemy_angle_up - enemy_angle_down
-
-                lerp = aux.minmax(angle / math.pi * 4, 0, 1)
+                lerp1 = self.estimate_pass_point(enemies, aux.Point(0, 0), point)
+                lerp2 = aux.minmax(angle / math.pi * 4, 0, 1)
+                lerp = 1 - (lerp1 + lerp2) // 1
                 red = round(min(1, 2 - lerp * 2) * 255)
                 green = round(min(1, lerp * 2) * 255)
                 color = (red, green, 0)
