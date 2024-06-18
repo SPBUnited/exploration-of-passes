@@ -81,6 +81,15 @@ class Image:
             aux.Point(const.GOAL_DX - const.GOAL_PEN, -const.GOAL_PEN),
             aux.Point(const.GOAL_DX, -const.GOAL_PEN),
         ]
+        self.goal_hull = goal_hull
+        # self.goal_hull = []
+        # for dot in goal_hull:
+        #     point = aux.Point(
+        #         dot.x / self.scale,
+        #         -(dot.y - self.middle_y) / self.scale,
+        #     )
+        #     self.goal_hull.append(point)
+
 
         for i, dot in enumerate(goal_hull):
             goal_hull[i] = -dot * self.scale + aux.Point(self.middle_x, self.middle_y)
@@ -207,8 +216,12 @@ class Image:
         return min(abs(min_ / (math.pi / 10)), 1)
 
     def draw_heat_map(self, enemies: list[aux.Point] = []) -> None:
+        kick_point = aux.Point(500, -1000)
         for cord_x in range(self.width // 2):
             for cord_y in range(self.heigh):
+                if aux.is_point_inside_poly(aux.Point(cord_x, cord_y), self.goal_hull):
+                    self.draw_pixel((cord_x, cord_y), (255, 0, 0))
+                    continue
                 point = aux.Point(
                     cord_x / self.scale,
                     -(cord_y - self.middle_y) / self.scale,
@@ -237,8 +250,8 @@ class Image:
                         and enemy_angle_down > angle_down
                     ):
                         angle -= enemy_angle_up - enemy_angle_down
-                lerp1 = 1 - self.estimate_pass_point(enemies, aux.Point(0, 0), point)
-                lerp2 = aux.minmax(angle / math.pi * 4, 0, 1)
+                lerp1 = 1 - self.estimate_pass_point(enemies, kick_point, point)
+                lerp2 = aux.minmax(angle / math.pi * 4, 1, 1)
                 lerp = aux.minmax(lerp2 - lerp1, 0, 1)
                 red = round(min(1, 2 - lerp * 2) * 255)
                 green = round(min(1, lerp * 2) * 255)
@@ -246,7 +259,7 @@ class Image:
                 self.draw_pixel((cord_x, cord_y), color)
             print(f"{cord_x / self.width * 200:.1f} %")
             pygame.event.get()
-
+        self.draw_dot(kick_point)
         for enemy in enemies:
             self.draw_robot(enemy)
 
