@@ -82,7 +82,7 @@ BALL_R = 0.05
 ROBOT_R = 100
 GRAVEYARD_POS_X = -10000
 
-POLARITY = -1  # 1 если ворота синих на +x; -1 если ворота синих на -x
+POLARITY = 1  # 1 если ворота синих на +x; -1 если ворота синих на -x
 GOAL_DX = POLARITY * 3000
 GOAL_DY = 1000
 GOAL_PEN = POLARITY * 1000
