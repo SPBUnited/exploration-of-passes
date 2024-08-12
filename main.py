@@ -1,38 +1,43 @@
-from strategy_bridge.common import config
-from strategy_bridge.processors import VisionDetectionsCollector, RobotCommandsSender
-from strategy_bridge.processors.referee_commands_collector import RefereeCommandsCollector
-from strategy_bridge.runner import Runner
+import time
+import math
+from random import random
 
-from bridge.processors.python_controller import SSLController
-from bridge.processors.robot_command_sink import CommandSink
-import bridge.processors.const as const
-import bridge.processors.strategy as strategy
+import auxiliary as aux
+import drawing
+import const
 
-if __name__ == '__main__':
+if __name__ == "__main__":
+    screen = drawing.Image()
+    screen.update_window()
 
-    config.init_logging("./logs")
+    # while True:
+    kick_point = aux.Point(1000 + 1000 * random(), -1000 + 1000 * random())
+    angle = 1 + 1.07 * random()
 
-    # TODO: Move list of processors to config
-    processors = [
-        VisionDetectionsCollector(processing_pause=0.001, should_debug=True),
-        RefereeCommandsCollector(processing_pause=0.001, should_debug=True),
-        SSLController(
-            our_color='y',
-            should_debug=True,
-            processing_pause=const.Ts,
-            reduce_pause_on_process_time=True,
-            dbg_game_status = strategy.GameStates.RUN,
-            dbg_state = strategy.States.ATTACK),
-        # SSLController(
-        #     our_color='b',
-        #     should_debug=True,
-        #     processing_pause=const.Ts,
-        #     reduce_pause_on_process_time=True,
-        #     dbg_game_status = strategy.GameStates.RUN,
-        #     dbg_state = strategy.States.DEFENCE),
-        CommandSink(processing_pause = const.Ts / 2, should_debug=True),
-        RobotCommandsSender(processing_pause = const.Ts / 2, should_debug=True)
+    enemies = [
+        aux.Point(random() * 1500 + 500, random() * 3000 - 1500),
+        aux.Point(random() * 1500 + 500, random() * 3000 - 1500),
+        aux.Point(random() * 1500 + 500, random() * 3000 - 1500),
+        aux.Point(random() * 1500 + 500, random() * 3000 - 1500),
+        aux.Point(random() * 1500 + 500, random() * 3000 - 1500),
     ]
-
-    runner = Runner(processors=processors)
-    runner.run()
+    # drawing.estimate_angle(kick_point, angle, enemies)
+    screen.update_window()
+    screen.draw_heat_map(kick_point, enemies)
+    screen.draw_line(
+        kick_point, kick_point + aux.rotate(aux.RIGHT, angle) * 4000, 2, (128, 128, 128)
+    )
+    # screen.find_best_angle(kick_point, 1)
+    screen.update_window()
+    for enemy in enemies:
+        inter = aux.get_line_intersection(
+            kick_point,
+            kick_point + aux.rotate(aux.RIGHT, angle),
+            aux.Point(const.GOAL_DX, 0),
+            enemy,
+            "RR",
+        )
+        if inter is not None:
+            print(aux.dist(kick_point, inter))
+    drawing.estimate_angle(kick_point, angle, enemies)
+    time.sleep(1000)
