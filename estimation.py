@@ -1,9 +1,11 @@
 import math
 from typing import Optional
-from drawing import Image
 
 import auxiliary as aux
 import const
+
+from drawing import Image
+from cells_tools import Cell
 
 goal_hull_ = [
     aux.Point(const.FIELD_WIDTH // 2, const.GOAL_PEN_DY),
@@ -13,6 +15,7 @@ goal_hull_ = [
 ]
 
 goal_up = aux.Point(const.FIELD_WIDTH // 2, const.GOAL_SIZE / 2)
+goal_center = aux.Point(const.FIELD_WIDTH // 2, 0)
 goal_down = aux.Point(const.FIELD_WIDTH // 2, -const.GOAL_SIZE / 2)
 
 
@@ -146,3 +149,31 @@ def draw_heat_map(
             )
         print(f"{pixel_x / const.SCREEN_WIDTH * 100:.1f} %")
         screen.update_window()
+
+
+# def get_cells(kick_point: aux.Point, enemies: list[aux.Point] = []) -> list[Cell]:
+#     cells = [
+#         Cell(
+#             [
+#                 aux.Point(0, const.FIELD_HEIGH / 2),
+#                 aux.Point(const.FIELD_WIDTH / 2, const.FIELD_HEIGH / 2),
+#                 aux.Point(const.FIELD_WIDTH / 2, -const.FIELD_HEIGH / 2),
+#                 aux.Point(0, -const.FIELD_HEIGH / 2),
+#             ]
+#         )
+#     ]
+
+#     for enemy in enemies:
+#         new_cells = []
+#         for cell in cells:
+#             new_cell = cell.intersect_cell(enemy, goal_center)
+#             if new_cell:
+#                 new_cells.append(new_cell)
+
+#         for cell in cells:
+#             new_cell = cell.intersect_cell(enemy, kick_point)
+#             if new_cell:
+#                 new_cells.append(new_cell)
+
+
+#     return cells

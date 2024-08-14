@@ -3,9 +3,6 @@ draw field with robots and trajectory
 """
 
 import math
-import time
-import matplotlib.pyplot as plt
-
 import pygame
 
 import auxiliary as aux

@@ -96,7 +96,7 @@ class Point:
         return abs(self.x - p.x) < 0.1 and abs(self.y - p.y) < 0.1
 
     def __str__(self) -> str:
-        return f"x = {self.x:.2f}, y = {self.y:.2f}"
+        return f"x = {self.x:.2f},\ty = {self.y:.2f}"
 
     def xy(self) -> tuple[float, float]:
         """
