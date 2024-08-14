@@ -1,5 +1,7 @@
 import math
 from typing import Optional
+import numpy as np
+from scipy.ndimage import minimum_filter
 
 import auxiliary as aux
 import const
@@ -128,16 +130,16 @@ def estimate_point(
 def draw_heat_map(
     screen: Image, kick_point: aux.Point, enemies: list[aux.Point] = []
 ) -> None:
-    scale_x = const.FIELD_WIDTH // 2 / const.HEAT_MAP_WIDTH
-    scale_y = const.FIELD_HEIGH / const.HEAT_MAP_HEIGH
+    scale_x = const.FIELD_WIDTH // 2 / const.SCREEN_WIDTH
+    scale_y = const.FIELD_HEIGH / const.SCREEN_HEIGH
+
+    dots_value = np.zeros((const.SCREEN_WIDTH, const.SCREEN_HEIGH))
 
     for pixel_x in range(const.SCREEN_WIDTH):
-        cord_x = int(pixel_x / const.SCREEN_WIDTH * const.HEAT_MAP_WIDTH)
         for pixel_y in range(const.SCREEN_HEIGH):
-            cord_y = int(pixel_y / const.SCREEN_HEIGH * const.HEAT_MAP_HEIGH)
             point = aux.Point(
-                cord_x * scale_x,
-                -(cord_y - const.HEAT_MAP_HEIGH / 2) * scale_y,
+                pixel_x * scale_x,
+                -(pixel_y - const.SCREEN_HEIGH / 2) * scale_y,
             )  # to cord on the field
             lerp = estimate_point(point, kick_point, enemies)
             red = round(min(1, 2 - lerp * 2) * 255)
@@ -147,33 +149,40 @@ def draw_heat_map(
                 (pixel_x, pixel_y),
                 color,
             )
+            dots_value[pixel_x, pixel_y] = lerp
         print(f"{pixel_x / const.SCREEN_WIDTH * 100:.1f} %")
         screen.update_window()
 
-
-# def get_cells(kick_point: aux.Point, enemies: list[aux.Point] = []) -> list[Cell]:
-#     cells = [
-#         Cell(
-#             [
-#                 aux.Point(0, const.FIELD_HEIGH / 2),
-#                 aux.Point(const.FIELD_WIDTH / 2, const.FIELD_HEIGH / 2),
-#                 aux.Point(const.FIELD_WIDTH / 2, -const.FIELD_HEIGH / 2),
-#                 aux.Point(0, -const.FIELD_HEIGH / 2),
-#             ]
-#         )
-#     ]
-
-#     for enemy in enemies:
-#         new_cells = []
-#         for cell in cells:
-#             new_cell = cell.intersect_cell(enemy, goal_center)
-#             if new_cell:
-#                 new_cells.append(new_cell)
-
-#         for cell in cells:
-#             new_cell = cell.intersect_cell(enemy, kick_point)
-#             if new_cell:
-#                 new_cells.append(new_cell)
+    # find local minimums
 
 
-#     return cells
+def get_cells(kick_point: aux.Point, enemies: list[aux.Point] = []) -> list[Cell]:
+    cells = [
+        Cell(
+            [
+                aux.Point(0, const.FIELD_HEIGH / 2),
+                aux.Point(const.FIELD_WIDTH / 2, const.FIELD_HEIGH / 2),
+                aux.Point(const.FIELD_WIDTH / 2, -const.FIELD_HEIGH / 2),
+                aux.Point(0, -const.FIELD_HEIGH / 2),
+            ]
+        )
+    ]
+
+    for enemy in enemies:
+        new_cells = []
+        for cell in cells:
+            new_cell = cell.intersect_cell(enemy, goal_center)
+            if new_cell:
+                new_cells.append(new_cell)
+        cells += new_cells
+
+        print(len(cells))
+
+        new_cells = []
+        for cell in cells:
+            new_cell = cell.intersect_cell(enemy, kick_point)
+            if new_cell:
+                new_cells.append(new_cell)
+        cells += new_cells
+
+    return cells

@@ -14,14 +14,21 @@ class Cell:
         for peak in self.peaks:
             print("\t", peak)
 
-    def draw(self, screen: Image) -> None:
+    def draw(
+        self, screen: Image, color: tuple[int, int, int] = (255, 255, 255)
+    ) -> None:
         """
         draw cell on screen
         """
+        center = aux.Point(0, 0)
+        for dot in self.peaks:
+            center += dot
+        center /= len(self.peaks)
+
         for index, _ in enumerate(self.peaks):
-            screen.draw_line(
-                self.peaks[index - 1], self.peaks[index], 3, (255, 255, 255)
-            )
+            point1 = self.peaks[index - 1] + (center - self.peaks[index - 1]).unity() * 15
+            point2 = self.peaks[index] + (center - self.peaks[index]).unity() * 15
+            screen.draw_line(point1, point2, 2, color)
 
     def get_line_intersections(
         self, line_start: aux.Point, line_end: aux.Point, is_inf: str = "L"
@@ -46,7 +53,9 @@ class Cell:
             ):
                 intersections.append((inter, index))
 
-        if intersections[0][0] == intersections[-1][0]:  # if intersection is peak
+        if (
+            intersections and intersections[0][0] == intersections[-1][0]
+        ):  # if intersection is peak
             intersections.pop()
         return intersections
 
