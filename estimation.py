@@ -1,7 +1,6 @@
 import math
 from typing import Optional
 import numpy as np
-from scipy.ndimage import minimum_filter
 
 import auxiliary as aux
 import const
@@ -45,7 +44,7 @@ def estimate_pass_point(
     for p in positions:
         if aux.dist(frm, p[1]) < aux.dist(frm, to) + const.ROBOT_R:
             tgs = aux.get_tangent_points(p[1], frm, const.ROBOT_R)
-            if tgs is None or len(tgs) < 2:
+            if len(tgs) < 2:
                 continue
             tangents.append((p[0], tgs))
 
@@ -82,13 +81,10 @@ def estimate_pass_point(
                 min_ = psevdo_ang
 
     if len(shadows_bots) > 0:
-        return 0
+        min_ = 0
     if min_ == 10e3:
         return 1
 
-    dist = (frm - to).mag() / 1000
-    # max_ang = abs(aux.wind_down_angle(2 * math.atan2(const.ROBOT_SPEED, -0.25 * dist + 4.5)))
-    # max_ang = 10
     return min(abs(min_ / (math.pi / 10)), 1)
 
 
@@ -102,7 +98,7 @@ def estimate_point(
     angle = aux.wind_down_angle(angle_up - angle_down)
     for enemy in enemies:
         tangents = aux.get_tangent_points(enemy, point, const.ROBOT_R)
-        if tangents is None or len(tangents) == 1:
+        if len(tangents) < 2:
             continue
         enemy_angle_up = aux.angle_to_point(point, tangents[0])
         enemy_angle_down = aux.angle_to_point(point, tangents[1])
@@ -149,11 +145,15 @@ def draw_heat_map(
                 (pixel_x, pixel_y),
                 color,
             )
-            dots_value[pixel_x, pixel_y] = lerp
+            dots_value[pixel_x][pixel_y] = lerp
         print(f"{pixel_x / const.SCREEN_WIDTH * 100:.1f} %")
         screen.update_window()
 
-    # find local minimums
+    # find local maxima
+    maxs = find_local_maxima(dots_value)
+
+    for max_pos in maxs:
+        screen.draw_pixel(max_pos, (255, 0, 255))
 
 
 def get_cells(kick_point: aux.Point, enemies: list[aux.Point] = []) -> list[Cell]:
@@ -176,13 +176,77 @@ def get_cells(kick_point: aux.Point, enemies: list[aux.Point] = []) -> list[Cell
                 new_cells.append(new_cell)
         cells += new_cells
 
-        print(len(cells))
-
         new_cells = []
-        for cell in cells:
-            new_cell = cell.intersect_cell(enemy, kick_point)
+        cells_to_delete: list[int] = []
+
+        for idx, cell in enumerate(cells):
+            vec = (enemy - kick_point).unity()
+
+            tangents = aux.get_tangent_points(enemy, kick_point, const.ROBOT_R)
+            if len(tangents) < 2:
+                continue
+
+            side = aux.sign(
+                aux.vec_mult((tangents[0] - kick_point), (enemy - kick_point))
+            )
+
+            new_cell = cell.intersect_cell(enemy - vec, enemy, "R")
             if new_cell:
-                new_cells.append(new_cell)
+                is_cropped = cell.crop_cell(kick_point, tangents[0], side, "R")
+                if not is_cropped:
+                    is_cropped = cell.crop_cell(kick_point, tangents[1], -side, "R")
+                    if not is_cropped:
+                        cells_to_delete = [idx] + cells_to_delete
+                        # порядок важен, т к при удалении меняются индексы
+
+                is_cropped = new_cell.crop_cell(kick_point, tangents[0], side, "R")
+                if not is_cropped:
+                    is_cropped = new_cell.crop_cell(kick_point, tangents[1], -side, "R")
+
+                if is_cropped:
+                    new_cells.append(new_cell)
+            else:
+                vec0 = tangents[0] - kick_point
+                cell.crop_cell(tangents[0] - vec0, tangents[0], side, "R")
+                vec1 = tangents[1] - kick_point
+                cell.crop_cell(tangents[1] - vec1, tangents[1], -side, "R")
+
+        for idx in cells_to_delete:  # NOTE
+            cells.pop(idx)
+
         cells += new_cells
 
     return cells
+
+
+def find_local_maxima(mass: list[list[float]] | np.ndarray) -> list[tuple[int, int]]:
+    maxima: list[tuple[int, int]] = []
+    for x, column in enumerate(mass):
+        for y, value in enumerate(column):
+            neighbors: list[float] = []
+            if x != 0:
+                neighbors += [mass[x - 1][y]]
+                if y != 0:
+                    neighbors += [mass[x - 1][y - 1]]
+                if y != len(column) - 1:
+                    neighbors += [mass[x - 1][y + 1]]
+            if x != len(mass) - 1:
+                neighbors += [mass[x + 1][y]]
+                if y != 0:
+                    neighbors += [mass[x + 1][y - 1]]
+                if y != len(column) - 1:
+                    neighbors += [mass[x + 1][y + 1]]
+            if y != 0:
+                neighbors += [column[y - 1]]
+            if y != len(column) - 1:
+                neighbors += [column[y + 1]]
+
+            is_maximum = True
+            for neighbor in neighbors:
+                if value < neighbor or value == 0:
+                    is_maximum = False
+
+            if is_maximum:
+                maxima.append((x, y))
+
+    return maxima

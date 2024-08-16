@@ -15,20 +15,25 @@ class Cell:
             print("\t", peak)
 
     def draw(
-        self, screen: Image, color: tuple[int, int, int] = (255, 255, 255)
+        self,
+        screen: Image,
+        color: tuple[int, int, int] = (255, 255, 255),
+        name: Optional[str] = None,
     ) -> None:
         """
         draw cell on screen
         """
-        center = aux.Point(0, 0)
-        for dot in self.peaks:
-            center += dot
-        center /= len(self.peaks)
+        center = aux.average_point(self.peaks)
 
         for index, _ in enumerate(self.peaks):
-            point1 = self.peaks[index - 1] + (center - self.peaks[index - 1]).unity() * 15
+            point1 = (
+                self.peaks[index - 1] + (center - self.peaks[index - 1]).unity() * 15
+            )
             point2 = self.peaks[index] + (center - self.peaks[index]).unity() * 15
             screen.draw_line(point1, point2, 2, color)
+
+        if name:
+            screen.print_text(name, center)
 
     def get_line_intersections(
         self, line_start: aux.Point, line_end: aux.Point, is_inf: str = "L"
@@ -60,13 +65,14 @@ class Cell:
         return intersections
 
     def intersect_cell(
-        self, line_start: aux.Point, line_end: aux.Point
+        self, line_start: aux.Point, line_end: aux.Point, is_inf: str = "L"
     ) -> Optional["Cell"]:
         """
         if the line intersects a cell, changes it and returns a new one (only convex cells)
+        is_inf: "S" - segment, "R" - ray, "L" - line
         """
-        inter_idx = self.get_line_intersections(line_start, line_end)
-        if not inter_idx:
+        inter_idx = self.get_line_intersections(line_start, line_end, is_inf)
+        if len(inter_idx) < 2:
             return None
         inter1, idx1 = inter_idx[0]
         inter2, idx2 = inter_idx[1]
@@ -93,22 +99,60 @@ class Cell:
 
         return new_cell
 
+    def crop_cell(
+        self,
+        line_start: aux.Point,
+        line_end: aux.Point,
+        side_to_delete: int,
+        is_inf: str = "L",
+    ) -> bool:
+        """
+        crop the cell with line
+        side_to_delete: -1 - delete left part, 1 - delete right part (to look relative to the direction of the vector)
+        return True if cell been cropped, False if can't crop cell (line don't intersect cell)
+        is_inf: "S" - segment, "R" - ray, "L" - line
+        """
+        cropped_part = self.intersect_cell(line_start, line_end, is_inf)
+        if cropped_part:
+            center = aux.average_point(self.peaks)
+            sign = aux.sign(
+                aux.vec_mult((center - line_start), (line_end - line_start))
+            )
+            if sign != side_to_delete:
+                self.peaks = cropped_part.peaks
+            return True
+        else:
+            return False
 
-if __name__ == "__main__":
-    cell1 = Cell(
-        [
-            aux.Point(2, 0),
-            aux.Point(3, 1),
-            aux.Point(3, 2),
-            aux.Point(0, 2),
-            aux.Point(-2, 0),
-        ]
-    )
-    line = [aux.Point(3, 0), aux.Point(-2, 2)]
 
-    cell1.print()
+def draw_cells(screen: Image, cells: list[Cell]) -> None:
+    """
+    draw cells with different grey color
+    """
+    grey_min = 64
+    grey_max = 255
+    step = (grey_max - grey_min) / (len(cells) - 1)
 
-    cell2 = cell1.intersect_cell(line[0], line[1])
+    for num, cell in enumerate(cells):
+        grey = int(grey_min + num * step)
+        cell.draw(screen, (grey, grey, grey), str(num))
 
-    cell1.print()
-    cell2.print()
+
+# if __name__ == "__main__":
+#     cell1 = Cell(
+#         [
+#             aux.Point(2, 0),
+#             aux.Point(3, 1),
+#             aux.Point(3, 2),
+#             aux.Point(0, 2),
+#             aux.Point(-2, 0),
+#         ]
+#     )
+#     line = [aux.Point(3, 0), aux.Point(-2, 2)]
+
+#     cell1.print()
+
+#     cell2 = cell1.intersect_cell(line[0], line[1])
+
+#     cell1.print()
+#     cell2.print()

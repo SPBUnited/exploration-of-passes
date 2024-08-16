@@ -411,13 +411,13 @@ def angle_to_point(point1: Point, point2: Point) -> float:
     return (point2 - point1).arg()
 
 
-def sign(num: float) -> float:
+def sign(num: float) -> int:
     """
     Получить знак числа num (0 если num == 0)
     """
     if num == 0:
-        return 0.0
-    return num / abs(num)
+        return 0
+    return int(math.copysign(1, num))
 
 
 def det(a: float, b: float, c: float, d: float) -> float:
@@ -485,13 +485,13 @@ def circles_inter(p0: Point, p1: Point, r0: float, r1: float) -> tuple[Point, Po
     return Point(x3, y3), Point(x4, y4)
 
 
-def get_tangent_points(point0: Point, point1: Point, r: float) -> Optional[list[Point]]:
+def get_tangent_points(point0: Point, point1: Point, r: float) -> list[Point]:
     """
     Get tangents (point0 - center of circle)
     """
     d = dist(point0, point1)
     if d < r:
-        return None
+        return []
     elif d == r:
         return [point1]
     else:
@@ -548,3 +548,9 @@ def is_point_inside_circle(a: Point, c: Point, radius: float) -> bool:
 def nearest_point_on_circle(a: Point, c: Point, radius: float) -> Point:
     """Return nearest point in circle"""
     return c + (a - c).unity() * radius
+
+
+def is_point_on_line(
+    point: Point, line_start: Point, line_end: Point, is_inf: str = "L"
+) -> bool:
+    return dist(point, closest_point_on_line(line_start, line_end, point, is_inf)) < 0.1

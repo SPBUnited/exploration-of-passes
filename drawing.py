@@ -28,6 +28,8 @@ class Image:
             (const.SCREEN_WIDTH, const.SCREEN_HEIGH), pygame.RESIZABLE
         )
         pygame.display.set_caption("Football Field")
+        pygame.font.init()
+        self.font = pygame.font.SysFont("Comic Sans MS", 30)
 
         goal_dx, goal_dy = abs(const.FIELD_WIDTH // 2), abs(const.FIELD_HEIGH // 2)
         self.scale = min(const.SCREEN_WIDTH / goal_dx, const.SCREEN_HEIGH / 2 / goal_dy)
@@ -83,6 +85,20 @@ class Image:
 
         for i, _ in enumerate(goal_hull_):
             self.draw_line(goal_hull_[i - 1], goal_hull_[i], 2, (255, 255, 255))
+
+    def print_text(
+        self, text: str, pos: aux.Point, color: tuple[int, int, int] = (255, 255, 255)
+    ) -> None:
+        """
+        print text on screen
+        """
+        text_surface = self.font.render(text, False, color)
+        size = text_surface.get_size()
+        cord = (
+            pos.x * self.scale + self.middle_x - size[0] / 2,
+            -pos.y * self.scale + self.middle_y - size[1] / 2,
+        )
+        self.screen.blit(text_surface, cord)
 
     def draw_robot(self, r: aux.Point, angle: float = 0.0) -> None:
         """
