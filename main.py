@@ -25,41 +25,42 @@ def sort_enemies(
 
 if __name__ == "__main__":
     screen = drawing.Image()
-    screen.update_window()
 
-    # while True:
-    kick_point = aux.Point(250 + 500 * random(), -1000 + 1000 * random())
-    # kick_point = aux.Point(457, 459)
-
-    enemies = [
-        # aux.Point(942, -1200),
-        # aux.Point(1100, -1600),
-        aux.Point(random() * 1500 + 500, random() * 3000 - 1500),
-        aux.Point(random() * 1500 + 500, random() * 3000 - 1500),
-        aux.Point(random() * 1500 + 500, random() * 3000 - 1500),
-        aux.Point(random() * 1500 + 500, random() * 3000 - 1500),
-        aux.Point(random() * 1500 + 500, random() * 3000 - 1500),
+    kick_point_zero = aux.Point(500, 500)
+    enemies_zero = [
+        aux.Point(2000, 1500),
+        aux.Point(800, 1000),
+        aux.Point(2000, -500),
+        aux.Point(3500, 1000),
+        aux.Point(500, -2000),
     ]
-    enemies = sort_enemies(enemies, kick_point)
 
-    cells = get_cells(kick_point, enemies)
-
-    draw_cells(screen, cells)
-    screen.update_window()
-
-    draw_heat_map(screen, kick_point, enemies)
-
-    draw_cells(screen, cells)
-
-    screen.draw_dot(kick_point, 4, (255, 255, 255))
-    screen.draw_dot(kick_point, 3)
-
-    for enemy in enemies:
-        screen.draw_robot(enemy)
-
-    screen.draw_field()
-
-    # print("ball:", kick_point)
-    # print("enemies", enemies[0], enemies[1])
     while True:
+        timer = time.time()
+        kick_point = kick_point_zero + aux.rotate(aux.Point(100, 150), time.time() / 3)
+        enemies = []
+        for enemy_zero in enemies_zero:
+            enemies.append(enemy_zero + aux.rotate(aux.Point(100, 150), time.time()))
+        enemies = sort_enemies(enemies, kick_point)
+
+        cells = get_cells(kick_point, enemies)
+
+        # draw_cells(screen, cells)
+        # screen.update_window()
+
+        # draw_heat_map(screen, kick_point, enemies)
+
+        screen.draw_field()
+
+        draw_cells(screen, cells)
+
+        screen.draw_dot(kick_point, 4, (255, 255, 255))
+        screen.draw_dot(kick_point, 3)
+
+        for enemy in enemies:
+            screen.draw_robot(enemy)
+
+        # print("ball:", kick_point)
+        # print("enemies", enemies[0], enemies[1])
+        print("delay:", time.time() - timer)
         screen.update_window()

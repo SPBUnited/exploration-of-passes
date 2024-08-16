@@ -51,12 +51,12 @@ class Image:
         """
         draw green field and white lines
         """
-        # field_color = (20, 178, 10)
-        # pygame.draw.rect(
-        #     self.screen,
-        #     field_color,
-        #     (self.left_border, self.upper_border, self.size_x, self.size_y),
-        # )  # Поле
+        field_color = (20, 178, 10)
+        pygame.draw.rect(
+            self.screen,
+            field_color,
+            (self.left_border, self.upper_border, self.size_x, self.size_y),
+        )  # Поле
         line_color = (255, 255, 255)
         pygame.draw.rect(
             self.screen,
