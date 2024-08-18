@@ -27,18 +27,16 @@ if __name__ == "__main__":
     screen = drawing.Image()
     screen.update_window()
 
-    # while True:
     kick_point = aux.Point(250 + 500 * random(), -1000 + 1000 * random())
-    # kick_point = aux.Point(457, 459)
 
     enemies = [
         # aux.Point(942, -1200),
         # aux.Point(1100, -1600),
         aux.Point(random() * 1500 + 500, random() * 3000 - 1500),
         aux.Point(random() * 1500 + 500, random() * 3000 - 1500),
-        aux.Point(random() * 1500 + 500, random() * 3000 - 1500),
-        aux.Point(random() * 1500 + 500, random() * 3000 - 1500),
-        aux.Point(random() * 1500 + 500, random() * 3000 - 1500),
+        # aux.Point(random() * 1500 + 500, random() * 3000 - 1500),
+        # aux.Point(random() * 1500 + 500, random() * 3000 - 1500),
+        # aux.Point(random() * 1500 + 500, random() * 3000 - 1500),
     ]
     enemies = sort_enemies(enemies, kick_point)
 
