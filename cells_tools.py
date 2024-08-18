@@ -62,10 +62,12 @@ class Cell:
                     break
 
     def remove_peak(self, peak: Peak) -> None:
+        """remove peak from cell"""
         self.peaks.remove(peak)
         peak.remove_neighbor_(self)
 
     def paste_new_peak(self, new_peak: Peak) -> bool:
+        """paste new peak in right position"""
         for i, _ in enumerate(self.peaks):
             if aux.is_point_on_line(new_peak, self.peaks[i - 1], self.peaks[i], "S"):
                 self.peaks = self.peaks[i:] + self.peaks[:i]
@@ -103,11 +105,12 @@ class Cell:
         neighbors_by_side: list["Cell"] = []
         for peak in self.peaks:
             for neighbor in peak.neighbors:
-                if neighbor not in (neighbors_by_peak + neighbors_by_side):
-                    neighbors_by_peak.append(neighbor)
-                elif neighbor in neighbors_by_peak:
-                    neighbors_by_peak.remove(neighbor)
-                    neighbors_by_side.append(neighbor)
+                if neighbor != self:
+                    if neighbor not in (neighbors_by_peak + neighbors_by_side):
+                        neighbors_by_peak.append(neighbor)
+                    elif neighbor in neighbors_by_peak:
+                        neighbors_by_peak.remove(neighbor)
+                        neighbors_by_side.append(neighbor)
 
         return neighbors_by_side
 
@@ -116,6 +119,9 @@ class Cell:
         print("cell peaks:")
         for peak in self.peaks:
             print("\t", peak, "\t", len(peak.neighbors))
+        print(
+            f"cell neighbors : peak {len(self.get_peak_neighbors())}, side {len(self.get_side_neighbors())}"
+        )
 
     def draw(
         self,
@@ -135,7 +141,7 @@ class Cell:
 
         for neighbor in self.get_all_neighbors():
             neighbors_center = aux.average_point(neighbor.peaks)
-            vec = (neighbors_center - center).unity() * 300
+            vec = (neighbors_center - center).unity() * 100
             screen.draw_line(center, center + vec, 2, (200, 200, 255))
 
         if name:
@@ -196,7 +202,6 @@ class Cell:
             new_peak1 = self.peaks[0]
         else:
             new_peak1 = Peak(inter1)
-            print("boom")
 
         if self.peaks[-1] == inter2:
             new_peak2 = self.peaks[-1]
@@ -204,8 +209,6 @@ class Cell:
             new_peak2 = new_cell.peaks[0]
         else:
             new_peak2 = Peak(inter2)
-            print("bom")
-        print("---")
 
         if new_cell.peaks[-1] != new_peak1:
             new_cell.add_peak(new_peak1)
@@ -219,30 +222,36 @@ class Cell:
 
         return new_cell
 
-    # def crop_cell(
-    #     self,
-    #     line_start: aux.Point,
-    #     line_end: aux.Point,
-    #     side_to_delete: int,
-    #     is_inf: str = "L",
-    # ) -> bool:
-    #     """
-    #     crop the cell with line
-    #     side_to_delete: -1 - delete left part, 1 - delete right part (to look relative to the direction of the vector)
-    #     return True if cell been cropped, False if can't crop cell (line don't intersect cell)
-    #     is_inf: "S" - segment, "R" - ray, "L" - line
-    #     """
-    #     cropped_part = self.intersect_cell(line_start, line_end, is_inf)
-    #     if cropped_part:
-    #         center = aux.average_point(self.peaks)
-    #         sign = aux.sign(
-    #             aux.vec_mult((center - line_start), (line_end - line_start))
-    #         )
-    #         if sign != side_to_delete:
-    #             self.peaks = cropped_part.peaks
-    #         return True
-    #     else:
-    #         return False
+    def crop_cell(
+        self,
+        line_start: aux.Point,
+        line_end: aux.Point,
+        side_to_delete: int,
+        is_inf: str = "L",
+    ) -> bool:
+        """
+        crop the cell with line
+        side_to_delete: -1 - delete left part, 1 - delete right part (to look relative to the direction of the vector)
+        return True if cell been cropped, False if can't crop cell (line don't intersect cell)
+        is_inf: "S" - segment, "R" - ray, "L" - line
+        """
+        cropped_part = self.intersect_cell(line_start, line_end, is_inf)
+        if cropped_part:
+            center = aux.average_point(self.peaks)
+            sign = aux.sign(
+                aux.vec_mult((center - line_start), (line_end - line_start))
+            )
+            if sign != side_to_delete:
+                for peak in self.peaks.copy():
+                    self.remove_peak(peak)
+                self.peaks = cropped_part.peaks
+            else:
+                print(len(cropped_part.peaks))
+                for peak in cropped_part.peaks.copy():
+                    cropped_part.remove_peak(peak)
+            return True
+        else:
+            return False
 
 
 def draw_cells(screen: Image, cells: list[Cell]) -> None:
