@@ -7,6 +7,7 @@ import const
 
 from drawing import Image
 from cells_tools import Cell, Peak
+from field import Field
 
 goal_hull_ = [
     aux.Point(const.FIELD_WIDTH // 2, const.GOAL_PEN_DY),
@@ -88,15 +89,13 @@ def estimate_pass_point(
     return min(abs(min_ / (math.pi / 10)), 1)
 
 
-def estimate_point(
-    point: aux.Point, kick_point: aux.Point, enemies: list[aux.Point]
-) -> float:
+def estimate_point(field: Field, point: aux.Point) -> float:
     if aux.is_point_inside_poly(point, goal_hull_):
         return 0
     angle_up = aux.angle_to_point(point, goal_up)
     angle_down = aux.angle_to_point(point, goal_down)
     angle = aux.wind_down_angle(angle_up - angle_down)
-    for enemy in enemies:
+    for enemy in field.enemies:
         tangents = aux.get_tangent_points(enemy, point, const.ROBOT_R)
         if len(tangents) < 2:
             continue
@@ -115,17 +114,15 @@ def estimate_point(
             angle -= enemy_angle_up - enemy_angle_down
     dist_to_goal_zone = aux.dist(point, aux.nearest_point_on_poly(point, goal_hull_))
 
-    lerp1 = 1 - estimate_pass_point(enemies, kick_point, point)
+    lerp1 = 1 - estimate_pass_point(field.enemies, field.kick_point, point)
     lerp2 = aux.minmax(angle / math.pi * 4, 1, 0)
     lerp3 = 1 - min(dist_to_goal_zone / 200, 1)
 
-    lerp = aux.minmax(lerp2 - lerp1 - lerp3, 0, 1)
+    lerp = min(lerp2 - lerp1 - lerp3, 1)
     return lerp
 
 
-def draw_heat_map(
-    screen: Image, kick_point: aux.Point, enemies: list[aux.Point] = []
-) -> None:
+def draw_heat_map(field: Field, screen: Image) -> None:
     scale_x = const.FIELD_WIDTH // 2 / const.SCREEN_WIDTH
     scale_y = const.FIELD_HEIGH / const.SCREEN_HEIGH
 
@@ -137,7 +134,7 @@ def draw_heat_map(
                 pixel_x * scale_x,
                 -(pixel_y - const.SCREEN_HEIGH / 2) * scale_y,
             )  # to cord on the field
-            lerp = estimate_point(point, kick_point, enemies)
+            lerp = max(0, estimate_point(field, point))
             red = round(min(1, 2 - lerp * 2) * 255)
             green = round(min(1, lerp * 2) * 255)
             color = (red, green, 0)
@@ -156,7 +153,7 @@ def draw_heat_map(
         screen.draw_pixel(max_pos, (255, 0, 255))
 
 
-def get_cells(kick_point: aux.Point, enemies: list[aux.Point] = []) -> list[Cell]:
+def get_cells(field: Field) -> list[Cell]:
     left_top_cell = Peak(aux.Point(0, const.FIELD_HEIGH / 2))
     right_top_cell = Peak(aux.Point(const.FIELD_WIDTH / 2, const.FIELD_HEIGH / 2))
     right_down_cell = Peak(aux.Point(const.FIELD_WIDTH / 2, -const.FIELD_HEIGH / 2))
@@ -164,7 +161,7 @@ def get_cells(kick_point: aux.Point, enemies: list[aux.Point] = []) -> list[Cell
 
     cells = [Cell([left_top_cell, right_top_cell, right_down_cell, left_down_cell])]
 
-    for enemy in enemies:
+    for enemy in field.enemies:
         new_cells = []
         for cell in cells:
             new_cell = cell.intersect_cell(enemy, goal_center)
@@ -176,35 +173,43 @@ def get_cells(kick_point: aux.Point, enemies: list[aux.Point] = []) -> list[Cell
         cells_to_delete: list[int] = []
 
         for idx, cell in enumerate(cells):
-            vec = (enemy - kick_point).unity()
+            vec = (enemy - field.kick_point).unity()
 
-            tangents = aux.get_tangent_points(enemy, kick_point, const.ROBOT_R)
+            tangents = aux.get_tangent_points(enemy, field.kick_point, const.ROBOT_R)
             if len(tangents) < 2:
                 continue
 
             side = aux.sign(
-                aux.vec_mult((tangents[0] - kick_point), (enemy - kick_point))
+                aux.vec_mult(
+                    (tangents[0] - field.kick_point), (enemy - field.kick_point)
+                )
             )
 
             new_cell = cell.intersect_cell(enemy - vec, enemy, "R")
             if new_cell:
-                is_cropped = cell.crop_cell(kick_point, tangents[0], side, "R")
+                is_cropped = cell.crop_cell(field.kick_point, tangents[0], side, "R")
                 if not is_cropped:
-                    is_cropped = cell.crop_cell(kick_point, tangents[1], -side, "R")
+                    is_cropped = cell.crop_cell(
+                        field.kick_point, tangents[1], -side, "R"
+                    )
                     if not is_cropped:
                         cells_to_delete = [idx] + cells_to_delete
                         # порядок важен, т к при удалении меняются индексы
 
-                is_cropped = new_cell.crop_cell(kick_point, tangents[0], side, "R")
+                is_cropped = new_cell.crop_cell(
+                    field.kick_point, tangents[0], side, "R"
+                )
                 if not is_cropped:
-                    is_cropped = new_cell.crop_cell(kick_point, tangents[1], -side, "R")
+                    is_cropped = new_cell.crop_cell(
+                        field.kick_point, tangents[1], -side, "R"
+                    )
 
                 if is_cropped:
                     new_cells.append(new_cell)
             else:
-                vec0 = tangents[0] - kick_point
+                vec0 = tangents[0] - field.kick_point
                 cell.crop_cell(tangents[0] - vec0, tangents[0], side, "R")
-                vec1 = tangents[1] - kick_point
+                vec1 = tangents[1] - field.kick_point
                 cell.crop_cell(tangents[1] - vec1, tangents[1], -side, "R")
 
         for idx in cells_to_delete:  # NOTE
