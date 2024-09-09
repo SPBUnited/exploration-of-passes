@@ -5,8 +5,7 @@
 import math
 import typing
 
-import const
-from typing import Optional
+from typing import Optional, Sequence
 
 
 class Graph:
@@ -193,7 +192,7 @@ def dist(a: Point, b: Point) -> float:
     return math.hypot(a.x - b.x, a.y - b.y)
 
 
-def average_point(points: list[Point]) -> Point:
+def average_point(points: Sequence[Point]) -> Point:
     """
     Возвращает точку с усредненными координатами
     """

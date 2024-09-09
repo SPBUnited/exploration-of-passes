@@ -6,7 +6,7 @@ import auxiliary as aux
 import const
 
 from drawing import Image
-from cells_tools import Cell
+from cells_tools import Cell, Peak
 
 goal_hull_ = [
     aux.Point(const.FIELD_WIDTH // 2, const.GOAL_PEN_DY),
@@ -157,16 +157,12 @@ def draw_heat_map(
 
 
 def get_cells(kick_point: aux.Point, enemies: list[aux.Point] = []) -> list[Cell]:
-    cells = [
-        Cell(
-            [
-                aux.Point(0, const.FIELD_HEIGH / 2),
-                aux.Point(const.FIELD_WIDTH / 2, const.FIELD_HEIGH / 2),
-                aux.Point(const.FIELD_WIDTH / 2, -const.FIELD_HEIGH / 2),
-                aux.Point(0, -const.FIELD_HEIGH / 2),
-            ]
-        )
-    ]
+    left_top_cell = Peak(aux.Point(0, const.FIELD_HEIGH / 2))
+    right_top_cell = Peak(aux.Point(const.FIELD_WIDTH / 2, const.FIELD_HEIGH / 2))
+    right_down_cell = Peak(aux.Point(const.FIELD_WIDTH / 2, -const.FIELD_HEIGH / 2))
+    left_down_cell = Peak(aux.Point(0, -const.FIELD_HEIGH / 2))
+
+    cells = [Cell([left_top_cell, right_top_cell, right_down_cell, left_down_cell])]
 
     for enemy in enemies:
         new_cells = []
