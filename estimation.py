@@ -19,11 +19,14 @@ goal_up = aux.Point(const.FIELD_WIDTH // 2, const.GOAL_SIZE / 2)
 goal_center = aux.Point(const.FIELD_WIDTH // 2, 0)
 goal_down = aux.Point(const.FIELD_WIDTH // 2, -const.GOAL_SIZE / 2)
 
+OBSTACLE_ANGLE = math.pi / 10
+GOAL_VIEW_ANGLE = math.pi / 4
+GOAL_HULL_DIST = 200.0
 
 def estimate_pass_point(
     enemies: list[aux.Point],
-    frm: Optional[aux.Point],
-    to: Optional[aux.Point],
+    frm: aux.Point,
+    to: aux.Point,
 ) -> float:
     """
     Оценивает пас из точки "frm" в точку "to, возвращая положительное значение до 1
@@ -31,71 +34,41 @@ def estimate_pass_point(
     if len(enemies) == 0:
         return 1
 
-    if frm is None or to is None:
-        return 0
-    positions: list[tuple[int, aux.Point]] = []
-
-    poses = enemies
-    for idx, rbt in enumerate(poses):
-        positions.append((idx, rbt))
-    positions = sorted(positions, key=lambda x: x[1].y)
-
-    tangents: list[tuple[int, list[aux.Point]]] = []
-    for p in positions:
-        if aux.dist(frm, p[1]) < aux.dist(frm, to) + const.ROBOT_R:
-            tgs = aux.get_tangent_points(p[1], frm, const.ROBOT_R)
+    tangents: list[tuple[aux.Point, aux.Point]] = []
+    for enemy in enemies:
+        if aux.dist(frm, enemy) < aux.dist(frm, to) + const.ROBOT_R:
+            tgs = aux.get_tangent_points(enemy, frm, const.ROBOT_R)
             if len(tgs) < 2:
                 continue
-            tangents.append((p[0], tgs))
+            tangents.append(tgs)
 
-    min_ = 10e3
+    lerp: float = 0.0
 
-    shadows_bots = []
     for tangent in tangents:
-        ang1 = aux.get_angle_between_points(to, frm, tangent[1][0])
-        ang2 = aux.get_angle_between_points(to, frm, tangent[1][1])
+        ang1 = aux.get_angle_between_points(to, frm, tangent[0])
+        ang2 = aux.get_angle_between_points(to, frm, tangent[1])
 
+        ang = min(abs(ang1), abs(ang2))
         if ang1 * ang2 < 0 and abs(ang1) < math.pi / 2 and abs(ang2) < math.pi / 2:
-            shadows_bots.append(tangent[0])
-        ang1 = abs(ang1)
-        ang2 = abs(ang2)
-        # if ang1 > 180:
-        #     ang1 = 360 - ang1
-        # if ang2 > 180:
-        #     ang2 = 360 - ang2
+            ang *= -1 #enemy beetwen to and frm
+            
+        lerp += max(0, 1 - ang / OBSTACLE_ANGLE)
 
-        if ang1 < min_:
-            min_ = ang1
-        if ang2 < min_:
-            min_ = ang2
-    # if minId == -1:
-    #     return 0
+    for enemy in enemies:
+        if aux.dist(frm, enemy) >= aux.dist(frm, to) + const.ROBOT_R:
+            dist_frm = aux.dist(frm, enemy)
+            dist_to_enemy = abs(aux.dist(enemy, to) - const.ROBOT_R)
 
-    for pos in positions:
-        dist = aux.dist(frm, pos[1])
-        not_ang = abs(aux.dist(pos[1], to) - const.ROBOT_R)
-        if not_ang < dist:
-            psevdo_ang = abs(math.asin(not_ang / dist))
+            if dist_to_enemy < dist_frm:
+                psevdo_ang = abs(math.asin(dist_to_enemy / dist_frm))
+                lerp += max(0, 1 - psevdo_ang / OBSTACLE_ANGLE)
 
-            if psevdo_ang < min_:
-                min_ = psevdo_ang
+    return lerp #0 - perfect; bigger => worse
 
-    if len(shadows_bots) > 0:
-        min_ = 0
-    if min_ == 10e3:
-        return 1
-
-    return min(abs(min_ / (math.pi / 10)), 1)
-
-
-def estimate_point(
-    point: aux.Point, kick_point: aux.Point, enemies: list[aux.Point]
-) -> float:
-    if aux.is_point_inside_poly(point, goal_hull_):
-        return 0
+def estimate_goal_view(point: aux.Point, enemies: list[aux.Point]) -> float:
     angle_up = aux.angle_to_point(point, goal_up)
     angle_down = aux.angle_to_point(point, goal_down)
-    angle = aux.wind_down_angle(angle_up - angle_down)
+    angle_err = 0.0
     for enemy in enemies:
         tangents = aux.get_tangent_points(enemy, point, const.ROBOT_R)
         if len(tangents) < 2:
@@ -103,24 +76,36 @@ def estimate_point(
         enemy_angle_up = aux.angle_to_point(point, tangents[0])
         enemy_angle_down = aux.angle_to_point(point, tangents[1])
         if enemy_angle_up > angle_up and enemy_angle_down < angle_up:
-            angle -= angle_up - enemy_angle_down
+            angle_err += angle_up - enemy_angle_down
         elif enemy_angle_up > angle_down and enemy_angle_down < angle_down:
-            angle -= enemy_angle_up - angle_down
+            angle_err += enemy_angle_up - angle_down
         elif (
-            enemy_angle_up < angle_up
-            and enemy_angle_up > angle_down
-            and enemy_angle_down < angle_up
-            and enemy_angle_down > angle_down
+            angle_down < enemy_angle_up < angle_up
+            and angle_down < enemy_angle_down < angle_up
         ):
-            angle -= enemy_angle_up - enemy_angle_down
+            angle_err += enemy_angle_up - enemy_angle_down
+
+    return (angle_up - angle_down - angle_err) / GOAL_VIEW_ANGLE #1 - perfect; smaller => worse
+
+def estimate_dist_to_goal(point: aux.Point) -> float:
     dist_to_goal_zone = aux.dist(point, aux.nearest_point_on_poly(point, goal_hull_))
+    if aux.is_point_inside_poly(point, goal_hull_):
+        dist_to_goal_zone *= -1
 
-    lerp1 = 1 - estimate_pass_point(enemies, kick_point, point)
-    lerp2 = aux.minmax(angle / math.pi * 4, 1, 0)
-    lerp3 = 1 - min(dist_to_goal_zone / 200, 1)
+    return max(1 - dist_to_goal_zone / GOAL_HULL_DIST, 0) #0 - perfect; bigger => worse
 
-    lerp = aux.minmax(lerp2 - lerp1 - lerp3, 0, 1)
-    return lerp
+
+
+
+def estimate_point(
+    point: aux.Point, kick_point: aux.Point, enemies: list[aux.Point]
+) -> float:    
+    lerp1 = estimate_pass_point(enemies, kick_point, point)
+    lerp2 = estimate_goal_view(point, enemies)
+    lerp3 = estimate_dist_to_goal(point)
+
+    lerp = lerp3 - lerp1 - lerp2
+    return lerp #1 - perfect; smaller => worse
 
 
 def draw_heat_map(
@@ -137,7 +122,7 @@ def draw_heat_map(
                 pixel_x * scale_x,
                 -(pixel_y - const.SCREEN_HEIGH / 2) * scale_y,
             )  # to cord on the field
-            lerp = estimate_point(point, kick_point, enemies)
+            lerp = aux.minmax(estimate_point(point, kick_point, enemies), 0, 1)
             red = round(min(1, 2 - lerp * 2) * 255)
             green = round(min(1, lerp * 2) * 255)
             color = (red, green, 0)
