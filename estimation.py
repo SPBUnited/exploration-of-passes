@@ -9,10 +9,10 @@ from drawing import Image
 from cells_tools import Cell, Peak
 
 goal_hull_ = [
-    aux.Point(const.FIELD_WIDTH // 2, const.GOAL_PEN_DY),
+    aux.Point(const.FIELD_WIDTH, const.GOAL_PEN_DY),
     aux.Point(const.FIELD_WIDTH // 2 - const.GOAL_PEN_DX, const.GOAL_PEN_DY),
     aux.Point(const.FIELD_WIDTH // 2 - const.GOAL_PEN_DX, -const.GOAL_PEN_DY),
-    aux.Point(const.FIELD_WIDTH // 2, -const.GOAL_PEN_DY),
+    aux.Point(const.FIELD_WIDTH, -const.GOAL_PEN_DY),
 ]
 
 goal_up = aux.Point(const.FIELD_WIDTH // 2, const.GOAL_SIZE / 2)
@@ -22,6 +22,7 @@ goal_down = aux.Point(const.FIELD_WIDTH // 2, -const.GOAL_SIZE / 2)
 OBSTACLE_ANGLE = math.pi / 10
 GOAL_VIEW_ANGLE = math.pi / 4
 GOAL_HULL_DIST = 200.0
+
 
 def estimate_pass_point(
     enemies: list[aux.Point],
@@ -36,7 +37,7 @@ def estimate_pass_point(
 
     tangents: list[tuple[aux.Point, aux.Point]] = []
     for enemy in enemies:
-        if aux.dist(frm, enemy) < aux.dist(frm, to) + const.ROBOT_R:
+        if aux.dist(frm, enemy) <= aux.dist(frm, to):
             tgs = aux.get_tangent_points(enemy, frm, const.ROBOT_R)
             if len(tgs) < 2:
                 continue
@@ -49,35 +50,51 @@ def estimate_pass_point(
         ang2 = aux.get_angle_between_points(to, frm, tangent[1])
 
         ang = min(abs(ang1), abs(ang2))
+        delta_lerp = (ang / OBSTACLE_ANGLE) ** 4 / 2
+
         if ang1 * ang2 < 0 and abs(ang1) < math.pi / 2 and abs(ang2) < math.pi / 2:
-            ang *= -1 #enemy beetwen to and frm
-            
-        lerp += max(0, 1 - ang / OBSTACLE_ANGLE)
+            delta_lerp *= -1  # enemy between to and frm
+
+        lerp += max(0, 1 - delta_lerp)
 
     for enemy in enemies:
-        if aux.dist(frm, enemy) >= aux.dist(frm, to) + const.ROBOT_R:
-            dist_frm = aux.dist(frm, enemy)
-            dist_to_enemy = abs(aux.dist(enemy, to) - const.ROBOT_R)
+        dist_frm = aux.dist(frm, enemy)
+        dist_to_enemy = aux.dist(enemy, to)
+        if dist_frm > aux.dist(frm, to) and dist_frm > dist_to_enemy:
+            if dist_to_enemy > const.ROBOT_R:
+                psevdo_ang = math.asin((dist_to_enemy - const.ROBOT_R) / dist_frm)
+            else:
+                psevdo_ang = -math.asin((const.ROBOT_R - dist_to_enemy) / dist_frm)
+            lerp += max(0, 1 - psevdo_ang / OBSTACLE_ANGLE)
 
-            if dist_to_enemy < dist_frm:
-                psevdo_ang = abs(math.asin(dist_to_enemy / dist_frm))
-                lerp += max(0, 1 - psevdo_ang / OBSTACLE_ANGLE)
+    return lerp  # 0 - perfect; bigger => worse
 
-    return lerp #0 - perfect; bigger => worse
 
 def estimate_goal_view(point: aux.Point, enemies: list[aux.Point]) -> float:
-    angle_up = aux.angle_to_point(point, goal_up)
-    angle_down = aux.angle_to_point(point, goal_down)
+    angle_center = aux.angle_to_point(point, goal_center)
+    angle_up = aux.wind_down_angle(aux.angle_to_point(point, goal_up) - angle_center)
+    angle_down = aux.wind_down_angle(
+        aux.angle_to_point(point, goal_down) - angle_center
+    )
     angle_err = 0.0
     for enemy in enemies:
         tangents = aux.get_tangent_points(enemy, point, const.ROBOT_R)
         if len(tangents) < 2:
             continue
-        enemy_angle_up = aux.angle_to_point(point, tangents[0])
-        enemy_angle_down = aux.angle_to_point(point, tangents[1])
-        if enemy_angle_up > angle_up and enemy_angle_down < angle_up:
+        enemy_angle_up = aux.wind_down_angle(
+            aux.angle_to_point(point, tangents[0]) - angle_center
+        )
+        enemy_angle_down = aux.wind_down_angle(
+            aux.angle_to_point(point, tangents[1]) - angle_center
+        )
+        if (
+            enemy_angle_down < angle_down < enemy_angle_up
+            and enemy_angle_down < angle_up < enemy_angle_up
+        ):
+            angle_err += angle_up - angle_down
+        elif enemy_angle_up > angle_up > enemy_angle_down:
             angle_err += angle_up - enemy_angle_down
-        elif enemy_angle_up > angle_down and enemy_angle_down < angle_down:
+        elif enemy_angle_up > angle_down > enemy_angle_down:
             angle_err += enemy_angle_up - angle_down
         elif (
             angle_down < enemy_angle_up < angle_up
@@ -85,27 +102,30 @@ def estimate_goal_view(point: aux.Point, enemies: list[aux.Point]) -> float:
         ):
             angle_err += enemy_angle_up - enemy_angle_down
 
-    return (angle_up - angle_down - angle_err) / GOAL_VIEW_ANGLE #1 - perfect; smaller => worse
+    return min(
+        (angle_up - angle_down - angle_err) / GOAL_VIEW_ANGLE, 1
+    )  # 1 - perfect; smaller => worse
+
 
 def estimate_dist_to_goal(point: aux.Point) -> float:
     dist_to_goal_zone = aux.dist(point, aux.nearest_point_on_poly(point, goal_hull_))
     if aux.is_point_inside_poly(point, goal_hull_):
         dist_to_goal_zone *= -1
 
-    return max(1 - dist_to_goal_zone / GOAL_HULL_DIST, 0) #0 - perfect; bigger => worse
-
-
+    return max(
+        1 - dist_to_goal_zone / GOAL_HULL_DIST, 0
+    )  # 0 - perfect; bigger => worse
 
 
 def estimate_point(
     point: aux.Point, kick_point: aux.Point, enemies: list[aux.Point]
-) -> float:    
+) -> float:
     lerp1 = estimate_pass_point(enemies, kick_point, point)
     lerp2 = estimate_goal_view(point, enemies)
     lerp3 = estimate_dist_to_goal(point)
 
-    lerp = lerp3 - lerp1 - lerp2
-    return lerp #1 - perfect; smaller => worse
+    lerp = 1 - lerp1  # lerp2 - lerp1 - lerp3
+    return lerp  # 1 - perfect; smaller => worse
 
 
 def draw_heat_map(
@@ -122,10 +142,13 @@ def draw_heat_map(
                 pixel_x * scale_x,
                 -(pixel_y - const.SCREEN_HEIGH / 2) * scale_y,
             )  # to cord on the field
-            lerp = aux.minmax(estimate_point(point, kick_point, enemies), 0, 1)
-            red = round(min(1, 2 - lerp * 2) * 255)
-            green = round(min(1, lerp * 2) * 255)
-            color = (red, green, 0)
+            lerp = aux.minmax(estimate_point(point, kick_point, enemies), -2, 1)
+            if lerp > 0.5:
+                color = (255 * 2 * (1 - lerp), 255, 0)
+            elif lerp > 0:
+                color = (255, 255 * 2 * lerp, 0)
+            else:
+                color = (255 * (1 + lerp / 2), 0, 0)
             screen.draw_pixel(
                 (pixel_x, pixel_y),
                 color,
@@ -134,11 +157,11 @@ def draw_heat_map(
         print(f"{pixel_x / const.SCREEN_WIDTH * 100:.1f} %")
         screen.update_window()
 
-    # find local maxima
-    maxs = find_local_maxima(dots_value)
+    # # find local maxima
+    # maxs = find_local_maxima(dots_value)
 
-    for max_pos in maxs:
-        screen.draw_pixel(max_pos, (255, 0, 255))
+    # for max_pos in maxs:
+    #     screen.draw_pixel(max_pos, (255, 0, 255))
 
 
 def get_cells(kick_point: aux.Point, enemies: list[aux.Point] = []) -> list[Cell]:
