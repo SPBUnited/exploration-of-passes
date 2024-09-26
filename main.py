@@ -30,10 +30,10 @@ if __name__ == "__main__":
     kick_point = aux.Point(250 + 500 * random(), -1000 + 1000 * random())
 
     enemies = [
-        # aux.Point(942, -1200),
-        # aux.Point(1100, -1600),
-        aux.Point(random() * 1500 + 500, random() * 3000 - 1500),
-        aux.Point(random() * 1500 + 500, random() * 3000 - 1500),
+        aux.Point(3000, 200),
+        aux.Point(1100, -1600),
+        # aux.Point(random() * 1500 + 500, random() * 3000 - 1500),
+        # aux.Point(random() * 1500 + 500, random() * 3000 - 1500),
         # aux.Point(random() * 1500 + 500, random() * 3000 - 1500),
         # aux.Point(random() * 1500 + 500, random() * 3000 - 1500),
         # aux.Point(random() * 1500 + 500, random() * 3000 - 1500),
