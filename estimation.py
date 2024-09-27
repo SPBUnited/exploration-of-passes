@@ -19,10 +19,10 @@ goal_up = aux.Point(const.FIELD_WIDTH // 2, const.GOAL_SIZE / 2)
 goal_center = aux.Point(const.FIELD_WIDTH // 2, 0)
 goal_down = aux.Point(const.FIELD_WIDTH // 2, -const.GOAL_SIZE / 2)
 
-OBSTACLE_ANGLE = math.pi / 5
-GOAL_VIEW_ANGLE = math.pi / 5
+OBSTACLE_ANGLE = math.pi / 6
+GOAL_VIEW_ANGLE = math.pi / 4
 GOAL_HULL_DIST = 200.0
-SHOOT_ANGLE = math.pi / 10
+SHOOT_ANGLE = math.pi / 8
 
 
 def estimate_pass_point(
@@ -90,34 +90,13 @@ def estimate_shoot(point: aux.Point, enemies: list[aux.Point]) -> float:
     for enemy in enemies:
         frm_enemy = aux.dist(point, enemy)
         if frm_enemy > const.ROBOT_R:
-            tgs = aux.get_tangent_points(enemy, point, const.ROBOT_R)
-            if len(tgs) < 2:
-                continue
 
-            ang0_up = aux.get_angle_between_points(goal_up, point, tgs[0])
-            ang1_up = aux.get_angle_between_points(goal_up, point, tgs[1])
-            ang0_down = aux.get_angle_between_points(goal_down, point, tgs[0])
-            ang1_down = aux.get_angle_between_points(goal_down, point, tgs[1])
+            ang1 = aux.get_angle_between_points(goal_down, point, enemy)
+            ang2 = aux.get_angle_between_points(goal_up, point, enemy)
 
-            ang0 = min(abs(ang0_up), abs(ang0_down))
-            ang1 = min(abs(ang1_up), abs(ang1_down))
-
-            if ang0_up * ang1_up < 0 and max(abs(ang0_up), abs(ang1_up)) < math.pi / 2:
-                if ang0_up * ang0_down > 0:
-                    ang = -ang0
-                else:
-                    ang = -ang1
-            elif (
-                ang0_down * ang1_down < 0
-                and max(abs(ang0_down), abs(ang1_down)) < math.pi / 2
-            ):
-                ang = 0
-            elif (
-                ang0_up * ang1_up < 0 and max(abs(ang0_up), abs(ang1_up)) < math.pi / 2
-            ):
-                ang = 0
-            else:
-                ang = min(abs(ang0_up), abs(ang0_down), abs(ang1_up), abs(ang1_down))
+            ang = min(abs(ang1), abs(ang2))
+            if ang1 * ang2 < 0 and abs(ang1) < math.pi / 2 and abs(ang2) < math.pi / 2:
+                ang *= -1  # enemy between to and frm
 
             if ang < SHOOT_ANGLE:
                 delta_lerp = abs((SHOOT_ANGLE - ang) / SHOOT_ANGLE) ** 1.5
@@ -135,7 +114,7 @@ def estimate_point(
     lerp3 = estimate_dist_to_goal(point)
     lerp4 = estimate_shoot(point, enemies)
 
-    lerp = 1 - lerp4  # lerp2 - lerp1 - lerp3 - lerp4
+    lerp = lerp2 - lerp1 - lerp3 - lerp4  # lerp2 - lerp1 - lerp3 - lerp4
     return lerp  # 1 - perfect; smaller => worse
 
 
