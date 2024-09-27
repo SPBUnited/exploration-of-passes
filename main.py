@@ -5,6 +5,8 @@ import auxiliary as aux
 import drawing
 from estimation import draw_heat_map, get_cells, estimate_point
 from cells_tools import draw_cells
+from surfer import find_local_minimum
+from field import Field
 
 from scipy.optimize import minimize
 import numpy as np
@@ -31,7 +33,8 @@ if __name__ == "__main__":
     screen = drawing.Image()
     screen.update_window()
 
-    kick_point = aux.Point(250 + 500 * random(), -1000 + 1000 * random())
+    # kick_point = aux.Point(250 + 500 * random(), -1000 + 1000 * random())
+    kick_point = aux.Point(750, 2000)
 
     enemies = [
         # aux.Point(3000, 200),
@@ -44,7 +47,9 @@ if __name__ == "__main__":
     ]
     enemies = sort_enemies(enemies, kick_point)
 
-    cells = get_cells(kick_point, enemies)
+    field = Field(kick_point, enemies)
+
+    cells = get_cells(field)
 
     def wrp_fnc(x):
         point = aux.Point(x[0], x[1])
@@ -83,9 +88,11 @@ if __name__ == "__main__":
     draw_cells(screen, cells)
     screen.update_window()
 
-    draw_heat_map(screen, kick_point, enemies)
+    # draw_heat_map(field, screen)
 
     draw_cells(screen, cells)
+
+    find_local_minimum(screen, field, estimate_point, aux.Point(1400, -2000))
 
     screen.draw_dot(kick_point, 4, (255, 255, 255))
     screen.draw_dot(kick_point, 3)
