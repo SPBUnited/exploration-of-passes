@@ -3,8 +3,11 @@ from random import random, seed
 
 import auxiliary as aux
 import drawing
-from estimation import draw_heat_map, get_cells
+from estimation import draw_heat_map, get_cells, estimate_point
 from cells_tools import draw_cells
+
+from scipy.optimize import minimize
+import numpy as np
 
 
 def sort_enemies(
@@ -26,7 +29,6 @@ def sort_enemies(
 if __name__ == "__main__":
     screen = drawing.Image()
     screen.update_window()
-    seed(1488)
 
     kick_point = aux.Point(250 + 500 * random(), -1000 + 1000 * random())
 
@@ -43,6 +45,37 @@ if __name__ == "__main__":
 
     cells = get_cells(kick_point, enemies)
 
+    def wrp_fnc(x):
+        point = aux.Point(x[0], x[1])
+        return -estimate_point(point, kick_point, enemies)
+
+    t = time.time()
+
+    _max = -100
+    pnts = []
+
+    for cell in cells:
+        tmp = aux.average_point(cell.peaks)
+
+        res = minimize(
+            wrp_fnc,
+            np.array(
+                [tmp.x, tmp.y],
+            ),
+            bounds=[(0, 4500), (-3000, 3000)],
+            method="Nelder-Mead",
+        )
+
+        if -res.get("fun") > _max:
+            _max = -res.get("fun")
+        pnts.append(
+            (
+                aux.Point(res.get("x")[0], res.get("x")[1]),
+                aux.minmax(-res.get("fun"), -1, 1),
+            )
+        )
+    print(time.time() - t)
+
     draw_cells(screen, cells)
     screen.update_window()
 
@@ -52,6 +85,14 @@ if __name__ == "__main__":
 
     screen.draw_dot(kick_point, 4, (255, 255, 255))
     screen.draw_dot(kick_point, 3)
+
+    for p in pnts:
+        print(p[0], p[1])
+        if p[1] < 0:
+            color = (255 * -p[1], 0, 0)
+        else:
+            color = (0, 255 * p[1], 0)
+        screen.draw_dot(p[0], 10, color)
 
     for enemy in enemies:
         screen.draw_robot(enemy)
