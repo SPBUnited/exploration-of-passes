@@ -8,6 +8,7 @@ from cells_tools import draw_cells
 
 from scipy.optimize import minimize
 import numpy as np
+from concurrent.futures import ThreadPoolExecutor
 
 
 def sort_enemies(
@@ -54,26 +55,29 @@ if __name__ == "__main__":
     _max = -100
     pnts = []
 
-    for cell in cells:
+    def process_cell(cell):
+        tmp = aux.Point(4500 * random(), 6000 * random() - 3000)
         tmp = aux.average_point(cell.peaks)
-
         res = minimize(
             wrp_fnc,
-            np.array(
-                [tmp.x, tmp.y],
-            ),
+            np.array([tmp.x, tmp.y]),
             bounds=[(0, 4500), (-3000, 3000)],
             method="Nelder-Mead",
         )
+        return res
 
-        if -res.get("fun") > _max:
-            _max = -res.get("fun")
-        pnts.append(
-            (
-                aux.Point(res.get("x")[0], res.get("x")[1]),
-                aux.minmax(-res.get("fun"), -1, 1),
+    with ThreadPoolExecutor() as executor:
+        futures = executor.map(process_cell, cells)
+
+        for res in futures:
+            if -res.get("fun") > _max:
+                _max = -res.get("fun")
+            pnts.append(
+                (
+                    aux.Point(res.get("x")[0], res.get("x")[1]),
+                    aux.minmax(-res.get("fun"), -1, 1),
+                )
             )
-        )
     print(time.time() - t)
 
     draw_cells(screen, cells)
