@@ -126,6 +126,9 @@ def draw_heat_map(
 
     dots_value = np.zeros((const.SCREEN_WIDTH, const.SCREEN_HEIGH))
 
+    _max = -100
+    sv = None
+
     for pixel_x in range(const.SCREEN_WIDTH):
         for pixel_y in range(const.SCREEN_HEIGH):
             point = aux.Point(
@@ -143,6 +146,9 @@ def draw_heat_map(
                 (pixel_x, pixel_y),
                 color,
             )
+            if lerp > _max:
+                _max = lerp
+                sv = point
             dots_value[pixel_x][pixel_y] = lerp
         print(f"{pixel_x / const.SCREEN_WIDTH * 100:.1f} %")
         screen.update_window()
@@ -150,8 +156,9 @@ def draw_heat_map(
     # # find local maxima
     # maxs = find_local_maxima(dots_value)
 
+    screen.draw_dot(sv, 20, (255, 0, 255))
     # for max_pos in maxs:
-    #     screen.draw_pixel(max_pos, (255, 0, 255))
+    #    screen.draw_dot(aux.Point(max_pos[0], max_pos[1]), 20, (255, 0, 255))
 
 
 def get_cells(kick_point: aux.Point, enemies: list[aux.Point] = []) -> list[Cell]:

@@ -66,7 +66,7 @@ if __name__ == "__main__":
         )
         return res
 
-    with ThreadPoolExecutor() as executor:
+    with ThreadPoolExecutor(max_workers=1) as executor:
         futures = executor.map(process_cell, cells)
 
         for res in futures:
