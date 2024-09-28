@@ -7,7 +7,6 @@ import const
 
 from drawing import Image
 from cells_tools import Cell, Peak
-from field import Field
 
 goal_hull_ = [
     aux.Point(const.FIELD_WIDTH, const.GOAL_PEN_DY),
@@ -119,7 +118,9 @@ def estimate_point(
     return lerp  # 1 - perfect; smaller => worse
 
 
-def draw_heat_map(field: Field, screen: Image) -> None:
+def draw_heat_map(
+    screen: Image, kick_point: aux.Point, enemies: list[aux.Point] = []
+) -> None:
     scale_x = const.FIELD_WIDTH // 2 / const.SCREEN_WIDTH
     scale_y = const.FIELD_HEIGH / const.SCREEN_HEIGH
 
@@ -160,7 +161,7 @@ def draw_heat_map(field: Field, screen: Image) -> None:
     #    screen.draw_dot(aux.Point(max_pos[0], max_pos[1]), 20, (255, 0, 255))
 
 
-def get_cells(field: Field) -> list[Cell]:
+def get_cells(kick_point: aux.Point, enemies: list[aux.Point] = []) -> list[Cell]:
     left_top_cell = Peak(aux.Point(0, const.FIELD_HEIGH / 2))
     right_top_cell = Peak(aux.Point(const.FIELD_WIDTH / 2, const.FIELD_HEIGH / 2))
     right_down_cell = Peak(aux.Point(const.FIELD_WIDTH / 2, -const.FIELD_HEIGH / 2))
@@ -168,7 +169,7 @@ def get_cells(field: Field) -> list[Cell]:
 
     cells = [Cell([left_top_cell, right_top_cell, right_down_cell, left_down_cell])]
 
-    for enemy in field.enemies:
+    for enemy in enemies:
         new_cells = []
         for cell in cells:
             new_cell = cell.intersect_cell(enemy, goal_center)
@@ -180,43 +181,35 @@ def get_cells(field: Field) -> list[Cell]:
         cells_to_delete: list[int] = []
 
         for idx, cell in enumerate(cells):
-            vec = (enemy - field.kick_point).unity()
+            vec = (enemy - kick_point).unity()
 
-            tangents = aux.get_tangent_points(enemy, field.kick_point, const.ROBOT_R)
+            tangents = aux.get_tangent_points(enemy, kick_point, const.ROBOT_R)
             if len(tangents) < 2:
                 continue
 
             side = aux.sign(
-                aux.vec_mult(
-                    (tangents[0] - field.kick_point), (enemy - field.kick_point)
-                )
+                aux.vec_mult((tangents[0] - kick_point), (enemy - kick_point))
             )
 
             new_cell = cell.intersect_cell(enemy - vec, enemy, "R")
             if new_cell:
-                is_cropped = cell.crop_cell(field.kick_point, tangents[0], side, "R")
+                is_cropped = cell.crop_cell(kick_point, tangents[0], side, "R")
                 if not is_cropped:
-                    is_cropped = cell.crop_cell(
-                        field.kick_point, tangents[1], -side, "R"
-                    )
+                    is_cropped = cell.crop_cell(kick_point, tangents[1], -side, "R")
                     if not is_cropped:
                         cells_to_delete = [idx] + cells_to_delete
                         # порядок важен, т к при удалении меняются индексы
 
-                is_cropped = new_cell.crop_cell(
-                    field.kick_point, tangents[0], side, "R"
-                )
+                is_cropped = new_cell.crop_cell(kick_point, tangents[0], side, "R")
                 if not is_cropped:
-                    is_cropped = new_cell.crop_cell(
-                        field.kick_point, tangents[1], -side, "R"
-                    )
+                    is_cropped = new_cell.crop_cell(kick_point, tangents[1], -side, "R")
 
                 if is_cropped:
                     new_cells.append(new_cell)
             else:
-                vec0 = tangents[0] - field.kick_point
+                vec0 = tangents[0] - kick_point
                 cell.crop_cell(tangents[0] - vec0, tangents[0], side, "R")
-                vec1 = tangents[1] - field.kick_point
+                vec1 = tangents[1] - kick_point
                 cell.crop_cell(tangents[1] - vec1, tangents[1], -side, "R")
 
         for idx in cells_to_delete:  # NOTE

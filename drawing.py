@@ -34,7 +34,7 @@ class Image:
         goal_dx, goal_dy = abs(const.FIELD_WIDTH // 2), abs(const.FIELD_HEIGH // 2)
         self.scale = min(const.SCREEN_WIDTH / goal_dx, const.SCREEN_HEIGH / 2 / goal_dy)
         self.middle_x = 0
-        self.middle_y = const.SCREEN_HEIGH // 2
+        self.middle_y = round(const.SCREEN_HEIGH / 2)
         self.upper_border = self.middle_y - goal_dy * self.scale
         self.lower_border = self.middle_y + goal_dy * self.scale
         self.left_border = self.middle_x - goal_dx * self.scale
@@ -51,12 +51,12 @@ class Image:
         """
         draw green field and white lines
         """
-        # field_color = (20, 178, 10)
-        # pygame.draw.rect(
-        #     self.screen,
-        #     field_color,
-        #     (self.left_border, self.upper_border, self.size_x, self.size_y),
-        # )  # Поле
+        field_color = (20, 178, 10)
+        pygame.draw.rect(
+            self.screen,
+            field_color,
+            (self.left_border, self.upper_border, self.size_x, self.size_y),
+        )  # Поле
         line_color = (255, 255, 255)
         pygame.draw.rect(
             self.screen,
